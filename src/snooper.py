@@ -1,9 +1,10 @@
-import ConfigParser
-import datetime
+# Copyright (c) 2013 Rivermeadow Software, Inc.
 
 __author__ = 'marco'
 
 import argparse
+import ConfigParser
+import datetime
 import json
 import psycopg2
 import psycopg2.errorcodes
@@ -101,8 +102,8 @@ def parse_args():
     parser.add_argument('--list', '-l', action='store_true',
                         help='Lists all available queries in the files specified with '
                              'the --queries flag and exits')
-    parser.add_argument('--config', '-c', default='dev', help='the section in the %s configuration '
-                        'file, from which to take the connection configuration parameters' % (CONF,))
+    parser.add_argument('--env', default='dev', help='the section in the %s configuration file, '
+                        'from which to take the connection configuration parameters' % (CONF,))
     parser.add_argument('query_params', metavar='param', nargs='*',
                                                       help='positional parameters '
                                                                          'for the query')
@@ -154,9 +155,9 @@ def config_connection(conf):
     config = ConfigParser.ConfigParser()
     config.read(CONF)
     res = {'host': conf.host,
-           'db': config.get(conf.config, 'db'),
-           'user': config.get(conf.config, 'user'),
-           'password': config.get(conf.config, 'password'),
+           'db': config.get(conf.env, 'db'),
+           'user': config.get(conf.env, 'user'),
+           'password': config.get(conf.env, 'password'),
     }
     return res
 
@@ -176,11 +177,20 @@ def main():
     print 'Executing "%s"  ::  %s' % (conf.query, query_to_run)
     connection = config_connection(conf)
     snooper = DbSnooper(conf=connection, query=query_to_run)
-    print json.dumps(snooper.execute(),
-                     sort_keys=True,
-                     indent=4,
-                     separators=(',', ': '))
+    results = snooper.execute()
+    if conf.out:
+        print 'Saving %d results to %s' % (results.get('rowcount', 0), conf.out,)
+        with open(conf.out, 'w') as results_file:
+            json.dump(results, results_file,
+                      sort_keys=True,
+                      indent=4,
+                      separators=(',', ': '))
+    else:
+        return json.dumps(results, sort_keys=True, indent=4, separators=(',', ': '))
 
 
 if __name__ == '__main__':
-    main()
+    out = main()
+    if out:
+        print out
+

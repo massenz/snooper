@@ -37,6 +37,12 @@ Command-line arguments
     --host      the host to run the queries agains (default: localhost)
     --format    the output format (currently only JSON, default, supported)
     --query, -q the query to run (named, from the ``queries`` file)
+    --list, -l  lists the queries by name and exits
+    --env        the parameters for the DB connection (db, user, password) are defined in a
+                 configuration file, for different environments (eg, `dev` or `prod`): this defines
+                 the section of the configuration file to use
+
+
 
 If the query to run has named arguments, then those should be passed in (for now, I will only
 support `positional` arguments).
@@ -59,3 +65,23 @@ Alternatively, the script can be used to run an arbitrary SQL query from the com
 
 Please not it's an **error** to pass both the ``--queries`` argument and a query (in this case,
 the query literal would be incorrectly interpreted as one of the positional query parameters)
+
+Connection parameters
+^^^^^^^^^^^^^^^^^^^^^
+
+These are taken from a configuration file (``snooper.conf``) and grouped by ``environments``,
+as in::
+
+    # Connection configuration for Snooper
+
+    [dev]
+    db = enclouddb
+    user = encloud
+    password =
+
+    [prod]
+    db = pencloud
+    user = zooz
+    password = blaaaz
+
+Use the ``--env`` command-line arg to specify a given environment (``dev`` is used by default).
