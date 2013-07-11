@@ -1,6 +1,7 @@
-# Copyright (c) 2013 Rivermeadow Software, Inc.
+#!/bin/env python
 
-__author__ = 'marco'
+__author__ = 'Marco Massenzio (marco@rivermeadow.com)'
+
 
 import argparse
 import ConfigParser
