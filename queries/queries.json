@@ -1,0 +1,6 @@
+{
+    "queries": {
+        "get_user": "SELECT USERNAME, PASSWORD FROM USER WHERE ID=?",
+        "get_migration": "SELECT * FROM TASK WHERE ID=? and STORAGE=? AND ORGANIZATION=?"
+    }
+}

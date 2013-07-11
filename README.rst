@@ -36,3 +36,26 @@ Command-line arguments
     --out       an optional output file
     --host      the host to run the queries agains (default: localhost)
     --format    the output format (currently only JSON, default, supported)
+    --query, -q the query to run (named, from the ``queries`` file)
+
+If the query to run has named arguments, then those should be passed in (for now, I will only
+support `positional` arguments).
+
+For example, say you want to run the following query::
+
+    SELECT USERNAME, PASSWORD FROM USER WHERE ID=?
+
+then one would invoke the script as follows::
+
+    snooper --queries queries.json --host 10.10.121.99 --query get_user 99
+
+the script would then run the query as follows::
+
+    SELECT USERNAME, PASSWORD FROM USER WHERE ID='99'
+
+Alternatively, the script can be used to run an arbitrary SQL query from the command line::
+
+    snooper --host 10.10.121.99 'SELECT USERNAME, PASSWORD FROM USER WHERE ID=99'
+
+Please not it's an **error** to pass both the ``--queries`` argument and a query (in this case,
+the query literal would be incorrectly interpreted as one of the positional query parameters)
