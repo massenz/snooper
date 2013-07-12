@@ -9,7 +9,7 @@ SQL Script execution
 Use Case
 --------
 
-As a RM staff I need to explore (or modify) the state of some of the Tables in the Postgres DB
+This allows one to explore (or modify) the state of some of the Tables in the Postgres DB
 by running an arbitrary query against a dev (or Prod) instance.
 
 There may also be a set of predefined queries that may be run automatically; further, these
@@ -22,10 +22,10 @@ Implementation
 --------------
 
 This is a python script that takes a number of command-line arguments, constructs the query and
-then executes it against a specified RM VM instance.
+then executes it against a specified VM instance.
 
-The output format will initially be JSON, but should be possible for the user to choose from a
-predefined set (eg, CSV, HTML table, etc.)
+The output format will initially be JSON, but it will eventually be possible for the user to choose
+from a predefined set (eg, CSV, HTML table, etc.)
 
 Command-line arguments
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -47,9 +47,14 @@ Command-line arguments
 If the query to run has named arguments, then those should be passed in (for now, I will only
 support `positional` arguments).
 
-For example, say you want to run the following query::
+For example, say you want to run the ``get_user`` query from the ``queries.json`` file::
 
-    SELECT USERNAME, PASSWORD FROM USER WHERE ID=?
+    {
+        "queries": {
+            "get_user": "SELECT USERNAME, PASSWORD FROM USER WHERE ID=?",
+            ...
+        }
+    }
 
 then one would invoke the script as follows::
 
@@ -63,8 +68,8 @@ Alternatively, the script can be used to run an arbitrary SQL query from the com
 
     snooper --host 10.10.121.99 'SELECT USERNAME, PASSWORD FROM USER WHERE ID=99'
 
-Please not it's an **error** to pass both the ``--queries`` argument and a query (in this case,
-the query literal would be incorrectly interpreted as one of the positional query parameters)
+Please note it's an **error** to pass both the ``--queries`` argument and a query (in this case,
+the query literal would be incorrectly interpreted as one of the query's positional parameters).
 
 Connection parameters
 ^^^^^^^^^^^^^^^^^^^^^
@@ -75,9 +80,9 @@ as in::
     # Connection configuration for Snooper
 
     [dev]
-    db = enclouddb
-    user = encloud
-    password =
+    db = mydb
+    user = uzer
+    password = duba
 
     [prod]
     db = pencloud

@@ -1,7 +1,6 @@
-#!/bin/env python
+#!/usr/bin/env python
 
 __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
-
 
 import argparse
 import ConfigParser
@@ -10,6 +9,7 @@ import json
 import psycopg2
 import psycopg2.errorcodes
 import re
+import sys
 
 
 CONF = 'snooper.conf'
@@ -46,9 +46,11 @@ class DbSnooper(object):
                                           host=conf['host'],
                                           port=port)
         except psycopg2.Error as e:
-            msg = 'Could not connect to DB: %s' % e.pgerror
+            msg = 'Could not connect to DB'
+            if e.pgerror:
+                msg += ': %s' % e.pgerror
             if e.pgcode:
-                msg.append(' [%s]' % psycopg2.errorcodes.lookup(e.pgcode))
+                msg += ' [%s]' % psycopg2.errorcodes.lookup(e.pgcode)
             raise RuntimeError(msg)
 
         self._query = query
@@ -58,7 +60,7 @@ class DbSnooper(object):
     def execute(self, query=None):
         if not query and not self._query:
             raise RuntimeError('Must specify a SQL query before attempting to execute it')
-        # this will override the predefined self._query, if already defined:
+            # this will override the predefined self._query, if already defined:
         if query:
             self._query = query
         self._cur.execute(self._query)
@@ -84,18 +86,17 @@ class DbSnooper(object):
         return res
 
 
-
 def parse_args():
     """ Parses the command line arguments and returns a configuration dict
 
     @return: a configuration dict
     """
     parser = argparse.ArgumentParser(description='SQL command line execution tool')
-    parser.add_argument('--queries', default='queries.json',
+    parser.add_argument('--queries',
                         help='an optional input file (JSON) defining a set of SQL queries')
     parser.add_argument('--out', help='an optional output file')
-    parser.add_argument('--host', required=True, help='the host to run the query against (must be '
-                        'running the Postgres server and have the external port accessible',
+    parser.add_argument('--host', help='the host to run the query against (must be '
+                                       'running the Postgres server and have the external port accessible',
                         default='localhost')
     parser.add_argument('--format', default='JSON', help='the format for the output')
     parser.add_argument('--query', '-q', help='used in conjunction with --queries, '
@@ -104,9 +105,9 @@ def parse_args():
                         help='Lists all available queries in the files specified with '
                              'the --queries flag and exits')
     parser.add_argument('--env', default='dev', help='the section in the %s configuration file, '
-                        'from which to take the connection configuration parameters' % (CONF,))
-    parser.add_argument('query_params', metavar='param', nargs='*',
-                                                      help='positional parameters '
+                                                     'from which to take the connection configuration parameters' % (
+                                                         CONF,))
+    parser.add_argument('query_params', metavar='param', nargs='*', help='positional parameters '
                                                                          'for the query')
     return parser.parse_args()
 
@@ -134,10 +135,12 @@ def replace_params(query, params):
         @type query: string
         @type params: list
     """
+    # noinspection PyUnusedLocal
     def replace(match_obj):
         rep = params[0]
         params.remove(rep)
         return rep
+
     return re.sub('\?', replace, query)
 
 
@@ -158,12 +161,16 @@ def config_connection(conf):
     res = {'host': conf.host,
            'db': config.get(conf.env, 'db'),
            'user': config.get(conf.env, 'user'),
-           'password': config.get(conf.env, 'password'),
+           'password': config.get(conf.env, 'password')
     }
     return res
 
 
 def main():
+    """ Runs the specified query
+
+        @return: the query result or None, if the output is sent to a file
+    """
     conf = parse_args()
     if conf.queries:
         if conf.query:
@@ -173,8 +180,12 @@ def main():
         elif conf.list:
             list_queries(parse_queries(conf.queries))
             exit(0)
-    else:
+    elif len(conf.query_params) > 0:
         query_to_run = conf.query_params[0]
+
+    if not query_to_run:
+        raise RuntimeError('The query must be specified either by using the --query option, '
+                           'or on the command line')
     print 'Executing "%s"  ::  %s' % (conf.query, query_to_run)
     connection = config_connection(conf)
     snooper = DbSnooper(conf=connection, query=query_to_run)
@@ -191,7 +202,9 @@ def main():
 
 
 if __name__ == '__main__':
-    out = main()
-    if out:
-        print out
-
+    try:
+        out = main()
+        if out:
+            print out
+    except RuntimeError, e:
+        print >> sys.stderr, 'Error encountered while querying DB: %s' % e
