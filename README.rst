@@ -90,3 +90,113 @@ as in::
     password = blaaaz
 
 Use the ``--env`` command-line arg to specify a given environment (``dev`` is used by default).
+
+REST API
+--------
+
+The server will provide a minimalist API wrapper around the script functionality, returning
+the response in JSON::
+
+Get all queries
+^^^^^^^^^^^^^^^
+
+::
+
+    GET /api/1/query
+
+Response::
+
+    {
+        "queries": [
+            "get_user", "get_migration", "get_success_duration"
+        ]
+    }
+
+Execute a query
+^^^^^^^^^^^^^^^
+
+::
+
+    GET /api/1/query/get_user?arg=ProviderAdmin
+
+Response::
+
+    {
+        "connection": "dbname=pencloud user=rmview host=localhost",
+        "query": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role='ProviderAdmin'",
+        "results": [
+            {
+                "email_address": "pappleton@rivermeadow.com",
+                "first_name": "",
+                "last_name": "SPAdmin",
+                "uuid": "06afdd16-319f-481e-b2ed-33944bf7227c"
+            },
+            {
+                "email_address": "kenny@rivermeadow.com",
+                "first_name": "Kenneth",
+                "last_name": "Keppler",
+                "uuid": "f8e3bf70-2817-4dd5-8533-6e79f685434d"
+            },
+            {
+                "email_address": "rtsai@rivermeadow.com",
+                "first_name": "Robert",
+                "last_name": "Tsai",
+                "uuid": "ca043832-c2b6-45f8-b0ad-3ea416336e39"
+            },
+            {
+                "email_address": "rheaton@rivermeadow.com",
+                "first_name": "Rich",
+                "last_name": "Heaton",
+                "uuid": "5a24565a-571c-48a0-b205-43291121d7c3"
+            },
+            {
+                "email_address": "eric.culp@poweredbypeak.com",
+                "first_name": "None",
+                "last_name": "None",
+                "uuid": "b43627bd-8a3c-45c0-8666-520ac4d758f5"
+            }
+        ],
+        "rowcount": 5,
+        "timestamp": "2013-07-24T16:24:24.777920"
+    }
+
+Create a new query
+^^^^^^^^^^^^^^^^^^
+
+::
+
+    POST /api/1/query
+
+    {
+        "name": "my_get_user",
+        "sql": "SELECT USERNAME, PASSWORD FROM USER WHERE ID=?",
+        "num_args": 1
+    }
+
+Modify an existing query
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+    PUT /api/1/query/my_get_user
+
+    {
+        "name": "my_get_user",
+        "sql": "SELECT FIRST_NAME, LAST_NAME FROM USER WHERE ID=?",
+        "num_args": 1
+    }
+
+Get a query details
+^^^^^^^^^^^^^^^^^^^
+
+::
+
+    GET /api/1/query/get_user/details
+
+Response::
+
+    {
+        "name": "get_user"
+        "query": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=?",
+        "num_args": 1
+    }

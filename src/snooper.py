@@ -69,12 +69,10 @@ class DbSnooper(object):
         return self._res_to_dict()
 
     def _res_to_dict(self):
-        res = {}
+        res = {'connection': re.sub('\s+password=\w+', '', self._conn.dsn),
+               'timestamp': datetime.datetime.now().isoformat(), 'query': self._query,
+               'rowcount': self._cur.rowcount}
         # add some metadata about the connection
-        res['connection'] = re.sub('\s+password=\w+', '', self._conn.dsn)
-        res['timestamp'] = datetime.datetime.now().isoformat()
-        res['query'] = self._query
-        res['rowcount'] = self._cur.rowcount
         if self._results:
             results = []
             for row in self._results:
