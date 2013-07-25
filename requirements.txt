@@ -1,0 +1,4 @@
+# Libraries required for Snooper
+
+psycopg2
+flask

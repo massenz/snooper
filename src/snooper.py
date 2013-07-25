@@ -91,10 +91,12 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description='SQL command line execution tool')
     parser.add_argument('--queries',
-                        help='an optional input file (JSON) defining a set of SQL queries')
+                        help='an optional input file (JSON) defining a set of SQL queries',
+                        default='queries/queries.json')
     parser.add_argument('--out', help='an optional output file')
     parser.add_argument('--host', help='the host to run the query against (must be '
-                                       'running the Postgres server and have the external port accessible',
+                                       'running the Postgres server and have the external port '
+                                       'accessible',
                         default='localhost')
     parser.add_argument('--format', default='JSON', help='the format for the output')
     parser.add_argument('--query', '-q', help='used in conjunction with --queries, '
@@ -103,8 +105,12 @@ def parse_args():
                         help='Lists all available queries in the files specified with '
                              'the --queries flag and exits')
     parser.add_argument('--env', default='dev', help='the section in the %s configuration file, '
-                                                     'from which to take the connection configuration parameters' % (
+                                                     'from which to take the connection '
+                                                     'configuration parameters' % (
                                                          CONF,))
+    parser.add_argument('--debug', action='store_true', default=False,
+                        help='If set, the server will be run in debug mode: do NOT use in '
+                             'production')
     parser.add_argument('query_params', metavar='param', nargs='*', help='positional parameters '
                                                                          'for the query')
     return parser.parse_args()
