@@ -1,0 +1,19 @@
+/*
+ * RiverMeadow Software - Cloud Server Migration
+ *
+ * Copyright (C) 2013, RiverMeadow Software, Inc.  All rights reserved.
+ *
+ * No parts of this software can be copied, modified or distributed without written
+ * authorization of RiverMeadow Software, Inc.
+ */
+
+/*
+	Description	: basic styles for jQuery Plugin "modalBox". feel free to customize this styles
+	Author		: Steffen Hollstein
+	Author URI	: http://www.steffenhollstein.de
+	Project Page: http://code.google.com/p/jquery-modalbox-plugin/
+*/
+@import url("/ui/css/jquery.modalbox-basic.css");
+/*@import url("jquery.modalbox-skin-default.css");*/
+/*@import url("jquery.modalbox-skin-rounded-black.css");*/
+@import url("/ui/css/jquery.modalbox-skin-precious-white.css");

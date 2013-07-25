@@ -1,0 +1,57 @@
+body {
+    padding-top: 80px;
+}
+.navbar-inner {
+    min-height: 60px;
+}
+.navbar-inner .brand {
+    font-size: 40px;
+}
+.navbar-inner li {
+    line-height: 40px;
+    font-size: 20px;
+}
+.js_sorTable {
+    font-size: smaller;
+}
+.js_sorTable th {
+/*     background-color: #becfde; */
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none; /* Webkit */
+    -moz-user-select: none;    /* Firefox */
+    -ms-user-select: none;     /* IE 10  */
+    /* Currently not supported in Opera but will be soon */
+    -o-user-select: none;
+    user-select: none;
+}
+.js_sorTable th i {
+    color: transparent;
+}
+.js_sorTable th.sorting_by i {
+    color: #000;
+}
+.js_sorTable th:last-child {
+    text-align: right;
+    padding-right: 200px;
+}
+.js_sorTable td {
+    padding-top: 11px;
+}
+.js_sorTable td.js_colId-3 {
+    max-width: 160px;
+}
+.js_sorTable td.js_colId-6 {
+    width: 270px;
+}
+.js_sorTable td dl {
+    margin-top: 0;
+}
+.js_sorTable td dt {
+    display: block;
+    width: 170px;
+    text-align: right;
+    float: left;
+    padding-right: 1em;
+}
