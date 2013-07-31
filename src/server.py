@@ -41,12 +41,17 @@ def get_all_queries():
         queries.append(query)
     return json.dumps({"queries": queries})
 
-@app.route('/api/1/query/<query>')
-def execute_query(query):
+@app.route('/api/1/query/<query>/<path:args>')
+def execute_query(query, args=None):
     query = snooper.parse_queries(conf.queries).get(query)
     if query:
-        res = db_conn.execute(query=query)
-        app.logger.debug('Res: %s', res)
+        db_conn.query = query.get("sql")
+        db_conn.params = snooper.parse_query_params(args.split('/'))
+        app.logger.debug('Executing query: {} - with params: {}'.format(db_conn.query,
+                                                                        db_conn.params))
+        res = db_conn.execute()
+        app.logger.debug('Found {} results'.format(res["rowcount"]))
+        res["drill_down"] = query.get("drill_down")
         return json.dumps(res)
     else:
         app.logger.error('Could not find query %s', query)

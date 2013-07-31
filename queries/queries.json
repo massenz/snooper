@@ -1,7 +1,7 @@
 {
     "queries": {
         "get_user_by_id": {
-            "sql": "SELECT * FROM USER WHERE UUID=%(id)s",
+            "sql": "SELECT * FROM USERS WHERE UUID=%(id)s",
             "drill_down": {
                 "email_address": "/api/1/query/get_user_by_email/email/$"
             }
