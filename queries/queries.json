@@ -1,11 +1,40 @@
 {
     "queries": {
-        "get_user": "SELECT USERNAME, PASSWORD FROM USER WHERE ID=?",
+        "get_user_by_id": {
+            "sql": "SELECT * FROM USER WHERE UUID=%(id)s",
+            "drill_down": {
+                "email_address": "/api/1/query/get_user_by_email/email/$"
+            }
+        },
 
-        "get_migration": "select source.uuid \"Source UUID\", source.host host, source.os OS, source.state \"Source State\", source.selected_drives \"Selected drives\", source.available_drives \"Available drives\", step.name \"name\", step.status \"status\", step.execution_start \"start\", step.execution_end \"end\", step.detail \"detail\", task.organization \"org\", task.execution_start \"migration start\", task.execution_end \"migration end\" from task, step, source_machine as source where task.id = step.task_id and step.source_machine_ref = source.id and task.id = ?",
+        "get_user_by_email": {
+            "sql": "select uuid, email_address, first_name, last_name, api_key from users where email_address like %(email)s",
+            "drill_down": {
+                "uuid": "/api/1/query/get_user_by_id/id/$"
+            }
+        },
 
-        "get_users_by_role": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=?",
+        "get_migration": {
+            "sql":  "select source.uuid \"Source UUID\", source.host host, source.os OS, source.state \"Source State\", source.selected_drives \"Selected drives\", source.available_drives \"Available drives\", step.name \"name\", step.status \"status\", step.execution_start \"start\", step.execution_end \"end\", step.detail \"detail\", task.organization \"org\", task.execution_start \"migration start\", task.execution_end \"migration end\" from task, step, source_machine as source where task.id = step.task_id and step.source_machine_ref = source.id and task.id = %(task.id)s",
+            "drill_down": {
+                "Source UUID": "/api/1/query/get_source_by_uuid/uuid/$",
+                "host": "/api/1/query/get_source_by_hostname/hostname/$",
+                "OS": "/api/1/query/get_all_migration_by_os/os/$/step_status/COMPLETED_SUCCESS"
+            }
+        },
 
-        "get_success_duration": "select task.id \"Migration ID\", date(step.status_recorded_at) \"Date\", source_machine.host, source_machine.selected_drives \"Drives\", (step.status_recorded_at - step.execution_start) \"Duration\" from source_machine, step, task where source_machine.id = step.source_machine_ref AND step.name = 'CollectDataStep' and step.status = 'COMPLETED_SUCCESS' and task.id = step.task_id order by step.status_recorded_at ASC"
+        "get_users_by_role": {
+            "sql": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=%(role)s",
+            "drill_down": {
+                "uuid": "/api/1/query/get_user_by_id/id/$"
+            }
+        },
+
+        "get_success_duration": {
+            "sql": "select task.id \"Migration ID\", date(step.status_recorded_at) \"Date\", source_machine.host, source_machine.selected_drives \"Drives\", (step.status_recorded_at - step.execution_start) \"Duration\" from source_machine, step, task where source_machine.id = step.source_machine_ref AND step.name = 'CollectDataStep' and step.status = 'COMPLETED_SUCCESS' and task.id = step.task_id order by step.status_recorded_at ASC",
+            "drill_down": {
+                "Migration ID": "/api/1/query/get_migration/task.id/$"
+            }
+        }
     }
 }

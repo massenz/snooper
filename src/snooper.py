@@ -5,6 +5,7 @@ __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
 import argparse
 import ConfigParser
 import datetime
+import itertools
 import json
 import psycopg2
 import psycopg2.errorcodes
@@ -35,8 +36,11 @@ class DbSnooper(object):
             @param conf: contains the host, port, db, user, etc to connect to the DB
             @see http://www.initd.org/psycopg/docs/module.html
 
-            @param params: Not currently used, params for the query
-            # TODO: seems a better approach then the current string replacement
+            @param params: params for the query
+            @type params: dict
+
+            @param query: the SQL query to execute, optionally with named arguments
+            @type query: string
         """
         port = int(conf.get('port')) if conf.get('port') else None
         try:
@@ -54,28 +58,94 @@ class DbSnooper(object):
             raise RuntimeError(msg)
 
         self._query = query
+        self._params = params
         self._cur = self._conn.cursor()
-        self._results = None
 
-    def execute(self, query=None):
-        if not query and not self._query:
+    @property
+    def query(self):
+        return self._query
+
+    @query.setter
+    def query(self, query):
+        self._query = query
+
+    @property
+    def params(self):
+        return self._params
+
+    @params.setter
+    def params(self, params):
+        """ The named parameters for the query, as a map of name, values pairs
+
+            @type params: dict
+        """
+        self._params = params
+
+    def execute(self):
+        """ Executes the query that was passed in at construction or set afterwards
+
+            @return: a dictionary constructed with the results (cursor) and
+            augmented with some query metadata::
+
+                {
+                    "connection": "dbname=pencloud user=rmview host=localhost",
+                    "query": "SELECT uuid,email_address,first_name,last_name FROM users
+                              WHERE role='ProviderAdmin'",
+                    "rowcount": 5,
+                    "timestamp": "2013-07-24T16:24:24.777920",
+                    "results": [
+                        {
+                            "email_address": "pappleton@rivermeadow.com",
+                            "first_name": "",
+                            "last_name": "SPAdmin",
+                            "uuid": "06afdd16-319f-481e-b2ed-33944bf7227c"
+                        },
+                        {
+                            "email_address": "kenny@rivermeadow.com",
+                            "first_name": "Kenneth",
+                            "last_name": "Keppler",
+                            "uuid": "f8e3bf70-2817-4dd5-8533-6e79f685434d"
+                        },
+                        {
+                            "email_address": "rtsai@rivermeadow.com",
+                            "first_name": "Robert",
+                            "last_name": "Tsai",
+                            "uuid": "ca043832-c2b6-45f8-b0ad-3ea416336e39"
+                        },
+                        {
+                            "email_address": "rheaton@rivermeadow.com",
+                            "first_name": "Rich",
+                            "last_name": "Heaton",
+                            "uuid": "5a24565a-571c-48a0-b205-43291121d7c3"
+                        },
+                        {
+                            "email_address": "eric.culp@poweredbypeak.com",
+                            "first_name": "None",
+                            "last_name": "None",
+                            "uuid": "b43627bd-8a3c-45c0-8666-520ac4d758f5"
+                        }
+                    ]
+                }
+            @rtype: dict
+        """
+        if not self._query:
             raise RuntimeError('Must specify a SQL query before attempting to execute it')
-            # this will override the predefined self._query, if already defined:
-        if query:
-            self._query = query
-        self._cur.execute(self._query)
+        self._cur.execute(self._query, self._params)
         # TODO: psycopg2 supports paginations, as well as retrieving results one row at a time
-        self._results = self._cur.fetchall()
-        return self._res_to_dict()
+        results = self._cur.fetchall()
+        return self._res_to_dict(results)
 
-    def _res_to_dict(self):
-        res = {'connection': re.sub('\s+password=\w+', '', self._conn.dsn),
-               'timestamp': datetime.datetime.now().isoformat(), 'query': self._query,
-               'rowcount': self._cur.rowcount}
+    def _res_to_dict(self, cursor):
+        res = {
+            'connection': re.sub('\s+password=\w+', '', self._conn.dsn),
+            'timestamp': datetime.datetime.now().isoformat(),
+            'query': self._query % self._params if self._params else self._query,
+            'rowcount': self._cur.rowcount
+        }
         # add some metadata about the connection
-        if self._results:
+        if cursor:
             results = []
-            for row in self._results:
+            for row in cursor:
                 another = {}
                 for i, col in enumerate(row):
                     another[self._cur.description[i].name] = str(col)
@@ -91,8 +161,7 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description='SQL command line execution tool')
     parser.add_argument('--queries',
-                        help='an optional input file (JSON) defining a set of SQL queries',
-                        default='queries/queries.json')
+                        help='an optional input file (JSON) defining a set of SQL queries')
     parser.add_argument('--out', help='an optional output file')
     parser.add_argument('--host', help='the host to run the query against (must be '
                                        'running the Postgres server and have the external port '
@@ -133,25 +202,23 @@ def parse_queries(filename):
         print 'Could not parse queries file %s: %s' % (filename, ex)
 
 
-def replace_params(query, params):
-    """ Replaces '?' placeholders in `query` with corresponding strings in `params`
+def parse_query_params(named_params):
+    """ Parses a list of name, value parameter values and builds a dict that can be passed to
+        sycopg2 ```execute()``` method.
 
-        @type query: string
-        @type params: list
+        See http://www.initd.org/psycopg/docs/usage.html#passing-parameters-to-sql-queries
     """
-    # noinspection PyUnusedLocal
-    def replace(match_obj):
-        rep = params[0]
-        params.remove(rep)
-        return rep
-
-    return re.sub('\?', replace, query)
+    # islice() takes a sequence and returns the items from start to stop, every step
+    # the code below cycles to the passed in params and makes a name/value pair
+    # see: http://docs.python.org/2/library/itertools.html#itertools.islice
+    return dict(itertools.izip(itertools.islice(named_params, 0, None, 2),
+                               itertools.islice(named_params, 1, None, 2)))
 
 
-def list_queries(queries):
-    """ Prints out the available queries"""
-    for name, query in queries.iteritems():
-        print "%20s :: %s" % (name, query)
+def print_queries(queries):
+    """ Prints out the available queries as '<name> :: <sql query>' lines"""
+    for query in queries:
+        print "%20s :: %s" % (query, queries[query].get("sql"))
 
 
 def config_connection(conf):
@@ -176,26 +243,28 @@ def main():
         @return: the query result or None, if the output is sent to a file
     """
     conf = parse_args()
+    query_to_run = None
+    query_params = None
     if conf.queries:
+        queries = parse_queries(conf.queries)
         if conf.query:
-            query_to_run = parse_queries(conf.queries).get(conf.query)
-            if query_to_run:
-                query_to_run = replace_params(query_to_run, conf.query_params)
+            if queries.get(conf.query):
+                query_to_run = queries.get(conf.query).get("sql")
+                query_params = parse_query_params(conf.query_params)
         elif conf.list:
-            list_queries(parse_queries(conf.queries))
+            print_queries(parse_queries(conf.queries))
             exit(0)
     elif len(conf.query_params) > 0:
         query_to_run = conf.query_params[0]
-
-    if not query_to_run:
+    else:
         raise RuntimeError('The query must be specified either by using the --query option, '
                            'or on the command line')
-    print 'Executing "%s"  ::  %s' % (conf.query, query_to_run)
+    print 'Executing "{0:s}"  ::  {1:s}'.format(conf.query, query_to_run)
     connection = config_connection(conf)
-    snooper = DbSnooper(conf=connection, query=query_to_run)
+    snooper = DbSnooper(conf=connection, query=query_to_run, params=query_params)
     results = snooper.execute()
     if conf.out:
-        print 'Saving %d results to %s' % (results.get('rowcount', 0), conf.out,)
+        print 'Saving {0:d} results to {1:s}'.format(results.get('rowcount', 0), conf.out)
         with open(conf.out, 'w') as results_file:
             json.dump(results, results_file,
                       sort_keys=True,
