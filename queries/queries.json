@@ -4,14 +4,22 @@
             "sql": "SELECT * FROM USERS WHERE UUID=%(id)s",
             "drill_down": {
                 "email_address": "/api/1/query/get_user_by_email/email/$"
-            }
+            },
+            "params": [{
+                "label": "User UUID",
+                "name": "id"
+            }]
         },
 
         "get_user_by_email": {
             "sql": "select uuid, email_address, first_name, last_name, api_key from users where email_address like %(email)s",
             "drill_down": {
                 "uuid": "/api/1/query/get_user_by_id/id/$"
-            }
+            },
+            "params": [{
+                "label": "User email",
+                "name": "email"
+            }]
         },
 
         "get_migration": {
@@ -20,7 +28,11 @@
                 "Source UUID": "/api/1/query/get_source_by_uuid/uuid/$",
                 "host": "/api/1/query/get_source_by_hostname/hostname/$",
                 "OS": "/api/1/query/get_all_migration_by_os/os/$/step_status/COMPLETED_SUCCESS"
-            }
+            },
+            "params": [{
+                "label": "Task ID",
+                "name": "task.id"
+            }]
         },
 
         "get_all_migrations": {
@@ -36,7 +48,11 @@
             "sql": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=%(role)s",
             "drill_down": {
                 "uuid": "/api/1/query/get_user_by_id/id/$"
-            }
+            },
+            "params": [{
+                "label": "User Role",
+                "name": "role"
+            }]
         },
 
         "get_success_duration": {

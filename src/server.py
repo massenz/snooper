@@ -40,8 +40,10 @@ class RestResource(restful.Resource):
 class QueryAllResource(RestResource):
     def get(self):
         queries = []
-        for query in snooper.parse_queries(self._conf.queries):
-            queries.append(query)
+        all_queries = snooper.parse_queries(self._conf.queries)
+        for query_name, query_value in all_queries.iteritems():
+            args = query_value.get('params', [])
+            queries.append({query_name: args})
         return {"queries": queries}
 
 
