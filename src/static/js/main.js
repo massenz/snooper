@@ -84,9 +84,9 @@ var UrlBox = function() {
 
     this.getUrlDirective = function(theUrl) {
         var theUrl = theUrl || that.workingUrl;
-        var defaultDirective = "get_all_migrations";
+        var defaultDirective = "/get_all_migrations";
         var theDirective = theUrl.substring(that.rootUrl.length);
-        if (theDirective.length === 0) theDirective = defaultDirective;
+        if (theDirective.length <= 1) theDirective = defaultDirective;
         return theDirective;
     }
 
@@ -96,8 +96,7 @@ var UrlBox = function() {
     */
     this.setUrl = function(theUrl) {
         that.workingUrl = theUrl;
-        that.serverBase = serverBase || "/snooper/src/ui/"; //change this if files are being served from a different location
-        that.rootUrl = rootUrl || theUrl.substr(0, theUrl.indexOf(serverBase) + serverBase.length);
+        that.rootUrl = location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '');
     };
 
     /**
@@ -282,7 +281,7 @@ var TableBox = function() {
 var apiCaller;
 var CallBox = function() {
     var that = this;
-    this.baseUrl = location.protocol+'//'+location.hostname+':5000/api/1/query/';
+    this.baseUrl = location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '')+'/api/1/query';
 
     /**
         API caller.
