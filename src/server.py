@@ -21,6 +21,7 @@ from flask.ext import restful
 import json
 import logging
 import snooper
+from werkzeug.local import LocalProxy
 
 
 SECRET_KEY = '#3K5h43Hl53&s0Bod62y$%C34t6oDv3NN47Oz24GT7$3TFJWDS5yX7E7&a4994e0'
@@ -32,60 +33,93 @@ REST_BASE_URL = '/api/1/query'
 #
 # The downside is that we will need to create Global objects here, for all the entities that are
 # needed for each route.
-app = Flask('snooper')
-api = restful.Api(app)
-conf = snooper.parse_args()
-db_conn = snooper.DbSnooper(conf=snooper.config_connection(conf))
+# app = Flask('snooper')
+# api = restful.Api(app)
+# conf = snooper.parse_args()
+# db_conn = snooper.DbSnooper(conf=snooper.config_connection(conf))
 
 
-class QueryAllResource(restful.Resource):
 
+class RestResource(restful.Resource):
+    """
+        A base class for all resources, where we can stash the logger and the configuration objects
+    """
+
+    _conf = {}
+    _logger = None
+
+
+class QueryAllResource(RestResource):
     def get(self):
         queries = []
-        for query in snooper.parse_queries(conf.queries):
+        for query in snooper.parse_queries(self._conf.queries):
             queries.append(query)
         return {"queries": queries}
 
 
-class QueryResource(restful.Resource):
+class QueryResource(RestResource):
     def get(self, query, args=None):
-        query = snooper.parse_queries(conf.queries).get(query)
+        query = snooper.parse_queries(self._conf.queries).get(query)
+
         if query:
             db_conn.query = query.get("sql")
             db_conn.params = snooper.parse_query_params(args.split('/'))
-            app.logger.debug('Executing query: {} - with params: {}'.format(db_conn.query,
+            self._logger.debug('Executing query: {} - with params: {}'.format(db_conn.query,
                                                                             db_conn.params))
             res = db_conn.execute()
-            app.logger.debug('Found {} results'.format(res["rowcount"]))
+            self._logger.debug('Found {} results'.format(res["rowcount"]))
             res["drill_down"] = query.get("drill_down")
             return res
         else:
-            app.logger.error('Could not find query %s', query)
+            self._logger.error('Could not find query %s', query)
             abort(404)
 
 
 class SnooperResources(object):
-    def __init__(self, api):
+    def __init__(self, api, conf, logger):
         """ Sets up the routes for the REST API.
 
             @param api: the Flask REST object to add routes to
             @type api: L{restful.Api}
         """
+        # TODO: this is ugly, there MUST be a better way!
+        QueryAllResource._conf = conf
+        QueryAllResource._logger = logger
         api.add_resource(QueryAllResource, REST_BASE_URL)
+        QueryResource._conf = conf
+        QueryResource._logger = logger
         api.add_resource(QueryResource, '/'.join([REST_BASE_URL, '<query>', '<path:args>']))
 
 
-@app.errorhandler(404)
-def redirect_to_UI(error):
-    print '404: ', error
-    q = session
-    return redirect('http://localhost')
+def get_db():
+    db = getattr(flask.g, '_database', None)
+    if not db:
+        conf = snooper.parse_args()
+        db = snooper.DbSnooper(conf=snooper.config_connection(conf))
+        flask.g._database = db
+    return db
 
-if __name__ == '__main__':
+db_conn = LocalProxy(get_db)
+
+
+def run_server():
+    """ The main server app, starts up Flask, sets up the routes and handles requests
+    """
+    app = Flask('snooper')
+    api = restful.Api(app)
+    conf = snooper.parse_args()
+
+    @app.errorhandler(404)
+    def redirect_to_UI(error):
+        return redirect('http://localhost')
+
     if not conf.debug:
         # By default, in non-debug mode, the app logger does not log anything
         # we enable it here to log DEBUG level to Console
         app.logger.setLevel(logging.DEBUG)
         app.logger.addHandler(logging.StreamHandler())
-    routes = SnooperResources(api)
+    routes = SnooperResources(api, conf, app.logger)
     app.run(debug=conf.debug)
+
+if __name__ == '__main__':
+    run_server()
