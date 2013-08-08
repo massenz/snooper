@@ -18,11 +18,14 @@ var pageReady = function() {
 var showData = function(rawData) {
     console.log('data:');
     console.log(rawData);
-/*
-    var urlDirective = urlEngine.getUrlDirective();
+
+    var processedData = rawData.results;
+
     var makePrettyStatus = function(theString) {
         return makePrettyName(theString.toLowerCase().replace("completed_",""));
     }
+
+/*
     var processedData = [];
     if (urlDirective.length === 2) {
         var statusKey = makePrettyName(urlDirective[0]);
@@ -35,6 +38,8 @@ var showData = function(rawData) {
         $("ul.nav").html('<li><a href="#">All Migrations</a></li>');
         processedData = rawData;
     }
+*/
+
     $("ul.nav").append('<li><a href="mailto:?subject=reporting&body='+document.location.href+'"><i class="icon-cloud-upload"></i> '+processedData.length+' Total</a></li>');
 
     var headersWritten = false;
@@ -66,7 +71,6 @@ var showData = function(rawData) {
         }
     });
     tableEngine.setUpTableSort($("#reporting_display"));
-*/
 }
 
 /** URL handler. */
