@@ -16,7 +16,7 @@ __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
 
 
 import flask
-from flask import Flask, abort
+from flask import Flask, abort, redirect, session
 from flask.ext import restful
 import json
 import logging
@@ -63,12 +63,29 @@ class QueryResource(restful.Resource):
             app.logger.error('Could not find query %s', query)
             abort(404)
 
+
+class SnooperResources(object):
+    def __init__(self, api):
+        """ Sets up the routes for the REST API.
+
+            @param api: the Flask REST object to add routes to
+            @type api: L{restful.Api}
+        """
+        api.add_resource(QueryAllResource, REST_BASE_URL)
+        api.add_resource(QueryResource, '/'.join([REST_BASE_URL, '<query>', '<path:args>']))
+
+
+@app.errorhandler(404)
+def redirect_to_UI(error):
+    print '404: ', error
+    q = session
+    return redirect('http://localhost')
+
 if __name__ == '__main__':
     if not conf.debug:
         # By default, in non-debug mode, the app logger does not log anything
         # we enable it here to log DEBUG level to Console
         app.logger.setLevel(logging.DEBUG)
         app.logger.addHandler(logging.StreamHandler())
-    api.add_resource(QueryAllResource, REST_BASE_URL)
-    api.add_resource(QueryResource, '/'.join([REST_BASE_URL, '<query>', '<path:args>']))
+    routes = SnooperResources(api)
     app.run(debug=conf.debug)

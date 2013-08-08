@@ -238,7 +238,10 @@ Response::
             }
         ],
         "rowcount": 5,
-        "timestamp": "2013-07-24T16:24:24.777920"
+        "timestamp": "2013-07-24T16:24:24.777920",
+        drill_down: {
+            "email_address": "/api/1/query/get_user_by_email/email/$"
+        }
     }
 
 Create a new query
