@@ -111,7 +111,7 @@ def run_server():
 
     @app.errorhandler(404)
     def redirect_to_UI(error):
-        return redirect('http://localhost')
+        return redirect('http://localhost/~dieter/snooper/src/ui/')
 
     if not conf.debug:
         # By default, in non-debug mode, the app logger does not log anything
