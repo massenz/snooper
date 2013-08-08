@@ -15,7 +15,7 @@
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
                     </button>
-                    <a class="brand" href="http://10.10.121.60/migrations/"><i class="icon-home"></i></a>
+                    <a class="brand" href="#"><i class="icon-home"></i></a>
                     <div class="nav-collapse collapse">
                         <ul class="nav"></ul>
                     </div>
@@ -35,7 +35,7 @@
         <script>
             var theUrl = document.location.href;
             var serverBase = "/snooper/src/ui/"; //change this if files are being served from a different location
-            var baseUrl = theUrl.substr(0, theUrl.indexOf(serverBase) + serverBase.length);
+            var rootUrl = theUrl.substr(0, theUrl.indexOf(serverBase) + serverBase.length);
 
             var forEach = function(theObject, theFunction) {
                 for (var theKey in theObject) {
@@ -65,12 +65,12 @@
                 var fileType = fileParts.pop();
                 if (fileType === "js") {
                     var newScript = document.createElement("script");
-                    $(newScript).attr({"src" : baseUrl+"js/"+paramName});
+                    $(newScript).attr({"src" : rootUrl+"js/"+paramName});
                     document.getElementsByTagName("body")[0].appendChild(newScript);
                     $(newScript).load(function() {checkForAssetCompletion()});
                 } else if (fileType === "css") {
                     var newStyle = document.createElement("link");
-                    $(newStyle).attr({"href" : baseUrl+"css/"+paramName, "rel" : "stylesheet"});
+                    $(newStyle).attr({"href" : rootUrl+"css/"+paramName, "rel" : "stylesheet"});
                     document.getElementsByTagName("head")[0].appendChild(newStyle);
                     $(newStyle).load(function() {checkForAssetCompletion()});
                 }

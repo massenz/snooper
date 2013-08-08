@@ -5,6 +5,7 @@ var pageReady = function() {
     apiCaller = new CallBox();
     tableEngine = new TableBox();
 
+    console.log('current directive is '+urlEngine.getUrlDirective());
 };
 
 var showData = function(rawData) {
@@ -59,7 +60,7 @@ var showData = function(rawData) {
 
 /** URL handler. */
 var urlEngine;
-var UrlBox = function() { //url handler
+var UrlBox = function() {
     var that = this;
 
     this.smartEncode = function(theString) {
@@ -72,13 +73,10 @@ var UrlBox = function() { //url handler
 
     this.getUrlDirective = function(theUrl) {
         var theUrl = theUrl || that.workingUrl;
-        var serverBase = "http://10.10.121.60/migrations/";
-        var rawDirective = theUrl.substring(serverBase.length).split("/");
-        var cookedDirective = [];
-        forEach(rawDirective, function(thisPart) {
-            cookedDirective.push(that.smartDecode(thisPart));
-        });
-        return cookedDirective;
+        var defaultDirective = "get_all_migrations";
+        var theDirective = theUrl.substring(that.rootUrl.length);
+        if (theDirective.length === 0) theDirective = defaultDirective;
+        return theDirective;
     }
 
     /**
@@ -87,6 +85,8 @@ var UrlBox = function() { //url handler
     */
     this.setUrl = function(theUrl) {
         that.workingUrl = theUrl;
+        that.serverBase = serverBase || "/snooper/src/ui/"; //change this if files are being served from a different location
+        that.rootUrl = rootUrl || theUrl.substr(0, theUrl.indexOf(serverBase) + serverBase.length);
     };
 
     /**
@@ -271,6 +271,7 @@ var TableBox = function() {
 var apiCaller;
 var CallBox = function() {
     var that = this;
+    this.baseUrl = location.protocol+'//'+location.hostname+':5000/api/1/query/';
 
     /**
         API caller.
@@ -292,7 +293,7 @@ var CallBox = function() {
         if (nextCallInfo.hasOwnProperty("settings")) $.extend(true, callPayload, nextCallInfo.settings);
 
         /** Make the API ajax call. */
-        $.ajax("http://10.10.121.60/migrations/assets/"+nextCallInfo.url, callPayload);
+        $.ajax(that.baseUrl+nextCallInfo.url, callPayload);
     };
 };
 
