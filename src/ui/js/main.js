@@ -1,23 +1,11 @@
-/** Code to be invoked when the DOM is ready, but typically before page assets have finished loading. */
-$(document).ready(function() {
+/** Code to be invoked when page assets have finished loading. */
+var pageReady = function() {
     /** Instantiate Objects */
     urlEngine = new UrlBox();
     apiCaller = new CallBox();
     tableEngine = new TableBox();
 
-    apiCaller.doCall({
-        url : "reporting.json",
-        settings : {
-            success : function(data, textStatus, jqXHR) {
-                showData(data.migrations);
-            },
-            error : function(jqXHR, textStatus, errorThrown) {
-                showData([]);
-            }
-        }
-    });
-
-});
+};
 
 var showData = function(rawData) {
     var urlDirective = urlEngine.getUrlDirective();
