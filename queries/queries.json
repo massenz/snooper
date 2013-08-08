@@ -23,6 +23,15 @@
             }
         },
 
+        "get_all_migrations": {
+            "sql":  "select source.uuid \"Source UUID\", source.host host, source.os OS, source.state \"Source State\", source.selected_drives \"Selected drives\", source.available_drives \"Available drives\", step.name \"name\", step.status \"status\", step.execution_start \"start\", step.execution_end \"end\", step.detail \"detail\", task.organization \"org\", task.execution_start \"migration start\", task.execution_end \"migration end\" from task, step, source_machine as source where task.id = step.task_id and step.source_machine_ref = source.id",
+            "drill_down": {
+                "Source UUID": "/api/1/query/get_source_by_uuid/uuid/$",
+                "host": "/api/1/query/get_source_by_hostname/hostname/$",
+                "OS": "/api/1/query/get_all_migration_by_os/os/$/step_status/COMPLETED_SUCCESS"
+            }
+        },
+
         "get_users_by_role": {
             "sql": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=%(role)s",
             "drill_down": {

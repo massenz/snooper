@@ -27,18 +27,6 @@ from werkzeug.local import LocalProxy
 SECRET_KEY = '#3K5h43Hl53&s0Bod62y$%C34t6oDv3NN47Oz24GT7$3TFJWDS5yX7E7&a4994e0'
 REST_BASE_URL = '/api/1/query'
 
-# Globals are evil, but apparently there is no (easy) way around this in Flask
-# The good news is, we can keep this as a 'thin wrapper' around a truly OO design,
-# keeping the routes as the only place where we expose everything at module level
-#
-# The downside is that we will need to create Global objects here, for all the entities that are
-# needed for each route.
-# app = Flask('snooper')
-# api = restful.Api(app)
-# conf = snooper.parse_args()
-# db_conn = snooper.DbSnooper(conf=snooper.config_connection(conf))
-
-
 
 class RestResource(restful.Resource):
     """
@@ -63,9 +51,10 @@ class QueryResource(RestResource):
 
         if query:
             db_conn.query = query.get("sql")
-            db_conn.params = snooper.parse_query_params(args.split('/'))
+            if args:
+                db_conn.params = snooper.parse_query_params(args.split('/'))
             self._logger.debug('Executing query: {} - with params: {}'.format(db_conn.query,
-                                                                            db_conn.params))
+                                                                              db_conn.params))
             res = db_conn.execute()
             self._logger.debug('Found {} results'.format(res["rowcount"]))
             res["drill_down"] = query.get("drill_down")
@@ -88,7 +77,8 @@ class SnooperResources(object):
         api.add_resource(QueryAllResource, REST_BASE_URL)
         QueryResource._conf = conf
         QueryResource._logger = logger
-        api.add_resource(QueryResource, '/'.join([REST_BASE_URL, '<query>', '<path:args>']))
+        api.add_resource(QueryResource, '/'.join([REST_BASE_URL, '<query>', '<path:args>']),
+                         '/'.join([REST_BASE_URL, '<query>']))
 
 
 def get_db():
@@ -111,7 +101,7 @@ def run_server():
 
     @app.errorhandler(404)
     def redirect_to_UI(error):
-        return redirect('http://localhost/~dieter/snooper/src/ui/')
+        return redirect('http://localhost/~marco/src/ui')
 
     if not conf.debug:
         # By default, in non-debug mode, the app logger does not log anything
