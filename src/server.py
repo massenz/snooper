@@ -55,6 +55,8 @@ class QueryResource(RestResource):
             db_conn.query = query.get("sql")
             if args:
                 db_conn.params = snooper.parse_query_params(args.split('/'))
+            else:
+                db_conn.params = None
             self._logger.debug('Executing query: {} - with params: {}'.format(db_conn.query,
                                                                               db_conn.params))
             res = db_conn.execute()

@@ -60,6 +60,37 @@
             "drill_down": {
                 "Migration ID": "/api/1/query/get_migration/task.id/$"
             }
+        },
+
+        "migrations_by_date": {
+            "sql": "select date(task.execution_end), task.name, status, count (status) from task where task.name like '%igrationTask%' group by task.name, date(task.execution_end), status order by date(task.execution_end) ASC",
+            "drill_down": {
+                "status": "/api/1/query/migrations_by_status/status/$"
+            }
+        },
+        "migrations_by_week": {
+            "sql": "select EXTRACT(week FROM DATE(task.execution_end)), status, count (status) from task where task.name like '%igrationTask%' group by EXTRACT(week FROM DATE(task.execution_end)), status order by EXTRACT(week FROM DATE(task.execution_end)) ASC"
+        },
+        "windows_migrations": {
+            "sql": "select distinct sm.host, s.source_machine_ref, av.attribute_category_id, av.attribute_name, av.attribute_value_string, t.id, t.status, DATE(t.execution_start) from attribute_value av, source_machine sm, attribute_collection ac, step s, task t where t.name like '%igrationTask%' and DATE(t.execution_start) >  %(date_since)s and s.task_id = t.id and s.source_machine_ref = sm.id and ac.host = sm.host and ac.id = av.attribute_collection_id and av.attribute_category_id = 7 and av.attribute_name like '%CPU Architecture%' and av.attribute_value_string like '%Windows%'",
+            "params": [{
+                "label": "Starting date (YYYY-MM-DD)",
+                "name": "date_since"
+            }]
+        },
+        "linux migrations": {
+            "sql": "select distinct sm.host, s.source_machine_ref, av.attribute_value_string, t.id, t.status, DATE(t.execution_start) from attribute_value av, source_machine sm, attribute_collection ac, step s, task t where t.name like '%igrationTask%' and DATE(t.execution_start) > %(date_since)s and s.task_id = t.id and s.source_machine_ref = sm.id and ac.host = sm.host and ac.id = av.attribute_collection_id and av.attribute_category_id = 7 and av.attribute_name like '%Description%'",
+            "params": [{
+                "label": "Starting date (YYYY-MM-DD)",
+                "name": "date_since"
+            }]
+        },
+        "migrations_by_id_1.15": {
+            "sql": "SELECT step.task_id AS \"Migration ID\", source_machine.host AS \"Source IP\", source_machine.description AS \"Source Hostname\", source_machine.os AS \"Operating System\", source_machine.available_drives AS \"Volumes\", target_vm.vm_name AS \"Target Name\", step.name AS \"Step Name\", step.status AS \"Status\", step.execution_start AS \"Step Start Time\",  step.execution_end AS \"Step End Time\", task.executed_system_id AS \"RiverMeadow Server\", step.status_description AS \"Notes\", users.email_address AS \"Account\" FROM step full outer join target_vm on step.target_vm_ref=target_vm.id full outer join source_machine on step.source_machine_ref=source_machine.id join task on task.id=step.task_id join users on task.executed_by=users.uuid WHERE step.task_id=%(migration_id)s ORDER BY step.execution_start ASC",
+            "params": [{
+                "label": "Migration ID",
+                "name": "migration_id"
+            }]
         }
     }
 }
