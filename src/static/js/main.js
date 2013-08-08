@@ -5,10 +5,20 @@ var pageReady = function() {
     apiCaller = new CallBox();
     tableEngine = new TableBox();
 
-    console.log('current directive is '+urlEngine.getUrlDirective());
+    apiCaller.doCall({
+        url : urlEngine.getUrlDirective(),
+        settings : {
+            success : function(data, textStatus, jqXHR) {
+                showData(data);
+            }
+        }
+    });
 };
 
 var showData = function(rawData) {
+    console.log('data:');
+    console.log(rawData);
+/*
     var urlDirective = urlEngine.getUrlDirective();
     var makePrettyStatus = function(theString) {
         return makePrettyName(theString.toLowerCase().replace("completed_",""));
@@ -56,6 +66,7 @@ var showData = function(rawData) {
         }
     });
     tableEngine.setUpTableSort($("#reporting_display"));
+*/
 }
 
 /** URL handler. */
@@ -285,7 +296,15 @@ var CallBox = function() {
                 "accept" : "application/json"
             },
             success : function(data, textStatus, jqXHR) {},
-            error : function(jqXHR, textStatus, errorThrown) {},
+            error : function(jqXHR, textStatus, errorThrown) {
+                var errorText = [];
+                forEach([textStatus, errorThrown], function(thisText) {
+                    if (thisText.length > 0) errorText.push(thisText);
+                });
+                console.log("Error Status: "+errorText+" (details below)");
+                console.log(jqXHR);
+                alert('Could not complete query.\n\nPlease check your browser console for details.');
+            },
             complete : function(jqXHR, textStatus) {}
         };
 

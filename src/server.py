@@ -16,7 +16,7 @@ __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
 
 
 import flask
-from flask import Flask, abort, redirect, session
+from flask import Flask, abort, redirect, session, render_template
 from flask.ext import restful
 import json
 import logging
@@ -101,7 +101,7 @@ def run_server():
 
     @app.errorhandler(404)
     def redirect_to_UI(error):
-        return redirect('http://localhost/~marco/src/ui')
+        return render_template('index.html')
 
     if not conf.debug:
         # By default, in non-debug mode, the app logger does not log anything
