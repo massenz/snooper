@@ -15,14 +15,22 @@ var pageReady = function() {
     });
 };
 
-var showData = function(rawData) {
+var showData = function(rawData, dataUrl) {
     console.log('data:');
     console.log(rawData);
+
+    var directiveElements = urlEngine.getUrlDirective().substring(1).split("/");
 
     var processedData = rawData.results;
 
     var makePrettyStatus = function(theString) {
         return makePrettyName(theString.toLowerCase().replace("completed_",""));
+    }
+
+    if (directiveElements.length > 0) {
+        var statusKey = makePrettyName(directiveElements[0]);
+        $("ul.nav").html('<li><a href="#">'+statusKey+'</a></li>');
+        $("title").html('Snooper - '+statusKey);
     }
 
 /*
@@ -58,7 +66,7 @@ var showData = function(rawData) {
                 });
                 cookedData += '</dl>';
             } else {
-                cookedData = '<a href="http://10.10.121.60/migrations/'+urlEngine.smartEncode(thisKey)+'/'+urlEngine.smartEncode(thisData)+'">'+cookedData+'</a>';
+                //cookedData = '<a href="http://10.10.121.60/migrations/'+urlEngine.smartEncode(thisKey)+'/'+urlEngine.smartEncode(thisData)+'">'+cookedData+'</a>';
             }
             newRow += '<td data-colId="'+colIterator+'" class="js_colId-'+colIterator+'">'+cookedData+'</td>';
             colIterator++;
