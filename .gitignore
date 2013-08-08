@@ -1,4 +1,5 @@
 .idea
 .venv
 snooper.conf
+.DS_Store
 *.pyc
