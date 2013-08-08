@@ -21,10 +21,18 @@ var showData = function(rawData, dataUrl) {
 
     var directiveElements = urlEngine.getUrlDirective().substring(1).split("/");
 
-    var processedData = rawData.results;
+    var processedData = [];
+    var showQueries = false;
+    if (rawData.hasOwnProperty("results")) {
+        processedData = rawData.results;
+    } else if (rawData.hasOwnProperty("queries")) {
+        processedData = rawData.queries;
+        directiveElements.unshift("All Queries");
+        showQueries = true;
+    }
 
     var makePrettyStatus = function(theString) {
-        return makePrettyName(theString.toLowerCase().replace("completed_",""));
+        if (typeof theString === "string") return makePrettyName(theString.toLowerCase().replace("completed_",""));
     }
 
     if (directiveElements.length > 0) {
@@ -52,32 +60,37 @@ var showData = function(rawData, dataUrl) {
 
     var headersWritten = false;
 
-    forEach(processedData, function(thisRow) {
-        var rowKeys = [];
-        var newRow = '<tr>';
-        var colIterator = 0;
-        forEach(thisRow, function(thisData, thisKey) {
-            rowKeys.push(makePrettyName(thisKey));
-            var cookedData = (thisKey === "status") ? makePrettyStatus(thisData) : thisData;
-            if ($.isArray(thisData)) {
-                cookedData = '<dl>';
-                forEach(thisData, function(thisStep) {
-                    cookedData += '<dt>'+makePrettyName(thisStep.name)+':</dt><dd>'+makePrettyStatus(thisStep.status)+'</dd>';
-                });
-                cookedData += '</dl>';
-            } else {
-                //cookedData = '<a href="http://10.10.121.60/migrations/'+urlEngine.smartEncode(thisKey)+'/'+urlEngine.smartEncode(thisData)+'">'+cookedData+'</a>';
-            }
-            newRow += '<td data-colId="'+colIterator+'" class="js_colId-'+colIterator+'">'+cookedData+'</td>';
-            colIterator++;
+    if (showQueries) {
+        forEach(processedData, function(thisRow) {
+
         });
-        $("#reporting_display tbody").append(newRow+'</tr>');
-        if (!headersWritten) {
-            $("#reporting_display").addClass("js_sorTable");
-            $("#reporting_display thead").append('<tr><th>'+rowKeys.join(' <i class="icon-sort-down"></i></th><th>')+' <i class="icon-sort-down"></i></th></tr>');
-            headersWritten = true;
-        }
-    });
+    } else {
+        forEach(processedData, function(thisRow) {
+            var rowKeys = [];
+            var newRow = '<tr>';
+            var colIterator = 0;
+            forEach(thisRow, function(thisData, thisKey) {
+                rowKeys.push(makePrettyName(thisKey));
+                var cookedData = (thisKey === "status") ? makePrettyStatus(thisData) : thisData;
+                console.log('success');
+                if ($.isArray(thisData)) {
+                    cookedData = '<dl>';
+                    forEach(thisData, function(thisStep) {
+                        cookedData += '<dt>'+makePrettyName(thisStep.name)+':</dt><dd>'+makePrettyStatus(thisStep.status)+'</dd>';
+                    });
+                    cookedData += '</dl>';
+                }
+                newRow += '<td data-colId="'+colIterator+'" class="js_colId-'+colIterator+'">'+cookedData+'</td>';
+                colIterator++;
+            });
+            $("#reporting_display tbody").append(newRow+'</tr>');
+            if (!headersWritten) {
+                $("#reporting_display").addClass("js_sorTable");
+                $("#reporting_display thead").append('<tr><th>'+rowKeys.join(' <i class="icon-sort-down"></i></th><th>')+' <i class="icon-sort-down"></i></th></tr>');
+                headersWritten = true;
+            }
+        });
+    }
     tableEngine.setUpTableSort($("#reporting_display"));
 }
 
@@ -96,7 +109,7 @@ var UrlBox = function() {
 
     this.getUrlDirective = function(theUrl) {
         var theUrl = theUrl || that.workingUrl;
-        var defaultDirective = "/get_all_migrations";
+        var defaultDirective = "";
         var theDirective = theUrl.substring(that.rootUrl.length);
         if (theDirective.length <= 1) theDirective = defaultDirective;
         return theDirective;
@@ -109,6 +122,9 @@ var UrlBox = function() {
     this.setUrl = function(theUrl) {
         that.workingUrl = theUrl;
         that.rootUrl = location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '');
+        $(".brand").click(function(event) {
+            document.location.href = that.rootUrl;
+        });
     };
 
     /**
