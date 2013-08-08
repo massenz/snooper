@@ -13,9 +13,6 @@ import re
 import sys
 
 
-CONF = 'snooper.conf'
-
-
 class DbSnooper(object):
     """ This class enables execution of arbitrary queries against a given DB
 
@@ -43,6 +40,8 @@ class DbSnooper(object):
             @type query: string
         """
         port = int(conf.get('port')) if conf.get('port') else None
+        print '>>>', conf
+
         try:
             self._conn = psycopg2.connect(database=conf['db'],
                                           user=conf.get('user'),
@@ -50,7 +49,7 @@ class DbSnooper(object):
                                           host=conf['host'],
                                           port=port)
         except psycopg2.Error as e:
-            msg = 'Could not connect to DB'
+            msg = 'Could not connect to DB (%s)' % (e,)
             if e.pgerror:
                 msg += ': %s' % e.pgerror
             if e.pgcode:
@@ -175,11 +174,12 @@ def parse_args():
                              'the --queries flag and exits')
     parser.add_argument('--env', default='dev', help='the section in the %s configuration file, '
                                                      'from which to take the connection '
-                                                     'configuration parameters' % (
-                                                         CONF,))
+                                                     'configuration parameters')
     parser.add_argument('--debug', action='store_true', default=False,
                         help='If set, the server will be run in debug mode: do NOT use in '
                              'production')
+    parser.add_argument('--conf', help='The location of the configuration file which contains the'
+                                       ' connection parameters', required=True)
     parser.add_argument('query_params', metavar='param', nargs='*', help='positional parameters '
                                                                          'for the query')
     return parser.parse_args()
@@ -191,8 +191,6 @@ def parse_queries(filename):
         @return: a dict where each (named) entry is a query
         @rtype: dict
     """
-    # TODO: currently the implementation of this is trivial, we should implement more
-    # sophisticated transformations
     try:
         with open(filename) as queries_file:
             parsed_json = json.load(fp=queries_file)
@@ -228,7 +226,7 @@ def config_connection(conf):
       based on the chosen ```--config``` option
     """
     config = ConfigParser.ConfigParser()
-    config.read(CONF)
+    config.read(conf.conf)
     res = {'host': conf.host,
            'db': config.get(conf.env, 'db'),
            'user': config.get(conf.env, 'user'),

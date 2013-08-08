@@ -281,3 +281,32 @@ Response::
         "query": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=?",
         "num_args": 1
     }
+
+How-To configure PostgreSQL
+---------------------------
+
+Follow the instructions here_
+
+.. _here: http://www.cyberciti.biz/tips/postgres-allow-remote-access-tcp-connection.html
+
+But essentially:
+
+1. edit the configuration file::
+
+    # vim /var/lib/pgsql/9.2/datapg_hba.conf
+
+   add this line::
+
+    host    all  all  10.10.0.0/16  trust
+
+2. ensure the server is listening on all ports::
+
+    # vim /var/lib/pgsql/9.2/postgresql.conf
+
+   ensure this line is present::
+
+    listen_addresses = '*'    # what IP address(es) to listen on;
+
+3. restart Postgres::
+
+    # service postgresql-9.2 restart
