@@ -41,28 +41,26 @@ var showData = function(rawData, dataUrl) {
         $("title").html('Snooper - '+statusKey);
     }
 
-/*
-    var processedData = [];
-    if (urlDirective.length === 2) {
-        var statusKey = makePrettyName(urlDirective[0]);
-        var statusVal = (urlDirective[0] === 'status') ? makePrettyStatus(urlDirective[1]) : makePrettyName(urlDirective[1]);
-        $("ul.nav").html('<li><a href="#">'+statusKey+' / '+statusVal+'</a></li>');
-        forEach(rawData, function(thisMigration) {
-            if (thisMigration.hasOwnProperty(urlDirective[0]) && (thisMigration[urlDirective[0]].toString() === urlDirective[1].toString())) processedData.push(thisMigration);
-        });
-    } else {
-        $("ul.nav").html('<li><a href="#">All Migrations</a></li>');
-        processedData = rawData;
-    }
-*/
-
     $("ul.nav").append('<li><a href="mailto:?subject=reporting&body='+document.location.href+'"><i class="icon-cloud-upload"></i> '+processedData.length+' Total</a></li>');
 
     var headersWritten = false;
 
     if (showQueries) {
+        $("#reporting_display thead").append('<tr><th>Query <i class="icon-sort-down"></i></th><th colspan="2">Parameters <i class="icon-sort-down"></i></th></tr>');
+        $("#reporting_display").addClass("js_sorTable");
+        headersWritten = true;
         forEach(processedData, function(thisRow) {
-
+            var newRow = '<tr>';
+            var colIterator = 0;
+            forEach(thisRow, function(thisData, thisKey) {
+                newRow += '<td>'+makePrettyName(thisKey)+'</td>';
+                newRow += '<td>'
+                forEach(thisData, function(thisParam, thisIterator) {
+                    if (thisParam.hasOwnProperty("name") && thisParam.hasOwnProperty("label")) newRow += '<div class="controls"><input type="text" name="'+thisParam.name+'" placeholder="'+thisParam.label+'" /></div>';
+                });
+                newRow += '</td><td><a class="btn btn-primary js_executeQuery" href="'+thisKey+'">Execute Query</a></td>';
+            });
+            $("#reporting_display tbody").append(newRow+'</tr>');
         });
     } else {
         forEach(processedData, function(thisRow) {
@@ -72,7 +70,6 @@ var showData = function(rawData, dataUrl) {
             forEach(thisRow, function(thisData, thisKey) {
                 rowKeys.push(makePrettyName(thisKey));
                 var cookedData = (thisKey === "status") ? makePrettyStatus(thisData) : thisData;
-                console.log('success');
                 if ($.isArray(thisData)) {
                     cookedData = '<dl>';
                     forEach(thisData, function(thisStep) {
