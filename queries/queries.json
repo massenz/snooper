@@ -23,7 +23,7 @@
         },
 
         "get_migration": {
-            "sql":  "select source.uuid \"Source UUID\", source.host host, source.os OS, source.state \"Source State\", source.selected_drives \"Selected drives\", source.available_drives \"Available drives\", step.name \"name\", step.status \"status\", step.execution_start \"start\", step.execution_end \"end\", step.detail \"detail\", task.organization \"org\", task.execution_start \"migration start\", task.execution_end \"migration end\" from task, step, source_machine as source where task.id = step.task_id and step.source_machine_ref = source.id and task.id = %(task.id)s",
+            "sql":  "select source.uuid \"Source UUID\", source.host host, source.os OS, source.state \"Source State\", source.selected_drives \"Selected drives\", source.available_drives \"Available drives\", step.name \"name\", step.status \"status\", step.execution_start \"start\", step.execution_end \"end\", step.detail \"detail\", task.organization \"org\", task.execution_start \"migration start\", task.execution_end \"migration end\" from task, step, source_machine as source where task.id = step.task_id and step.source_machine_ref = source.id and task.id = %(task_id)s",
             "drill_down": {
                 "Source UUID": "/api/1/query/get_source_by_uuid/uuid/$",
                 "host": "/api/1/query/get_source_by_hostname/hostname/$",
@@ -31,7 +31,7 @@
             },
             "params": [{
                 "label": "Task ID",
-                "name": "task.id"
+                "name": "task_id"
             }]
         },
 
@@ -92,7 +92,11 @@
             "params": [{
                 "label": "Migration ID",
                 "name": "migration_id"
-            }]
+            }],
+            "drill_down": {
+                "Source IP": "/api/1/query/get_source_by_ip/ip/$",
+                "Migration ID": "/api/1/query/get_migration/task.id/$"
+            }
         },
         "awesome_query": {
             "sql": "select organizations.name as \"SP name\", users.email_address as \"Migration user\", task.id as \"Migration ID\", source_machine.host as \"Server IP\", cloud_targets.name as \"Cloud name\", cloud_target_accounts.name as \"Cloud target login\", cloud_targets.url as \"Cloud target URI\" from source_machine, task, users, step, cloud_target_accounts, cloud_targets, organizations where task.name like '%igrationTask%' and task.status like '%SUCCES%' and task.created_by = users.uuid and source_machine.id = step.source_machine_ref and step.task_id = task.id and step.name = 'DeployToCloudStep' and substring(step.detail from '\\w{8}-\\w{4}-\\w{4}-\\w{4}-\\w{12}') = cloud_target_accounts.uuid and cloud_target_accounts.cloud_target_ref = cloud_targets.uuid and cloud_target_accounts.provider_ref = organizations.uuid and organizations.name != 'RivermeadowTesting' and organizations.name != 'SETraining'",
@@ -121,6 +125,29 @@
             }],
             "drill_down": {
                 "Migration ID": "/api/1/query/migrations_by_id_1.15/migration_id/$"
+            }
+        },
+
+        "get_source_by_ip_1.15": {
+            "sql": "SELECT step.task_id AS \"Migration ID\", source_machine.host AS \"Source IP\", source_machine.description AS \"Source Hostname\", source_machine.os AS \"Operating System\", source_machine.available_drives AS \"Volumes\", target_vm.vm_name AS \"Target Name\", step.name AS \"Step Name\", step.status AS \"Status\", step.execution_start AS \"Step Start Time\", step.execution_end AS \"Step End Time\", task.executed_system_id AS \"RiverMeadow Server\", step.status_description AS \"Notes\", users.email_address AS \"Account\"  FROM step full outer join target_vm on step.target_vm_ref=target_vm.id full outer join source_machine on step.source_machine_ref=source_machine.id join task on task.id=step.task_id join users on users.uuid=task.executed_by  WHERE source_machine.host=%(ip)s  ORDER BY step.execution_start DESC",
+            "params": [{
+                "label": "Source IP",
+                "name": "ip"
+            }],
+            "drill_down": {
+                "Migration ID": "/api/1/query/migrations_by_id_1.15/migration_id/$"
+            }
+        },
+
+        "get_failures_by_user": {
+            "sql": "SELECT step.task_id AS \"Migration ID\", source_machine.host AS \"Source IP\", source_machine.description AS \"Source Hostname\", source_machine.os AS \"Operating System\", source_machine.available_drives AS \"Volumes\", target_vm.vm_name AS \"Target Name\", step.name AS \"Step Name\", step.status AS \"Status\", step.execution_start AS \"Step Start Time\", step.execution_end AS \"Step End Time\", task.executed_system_id AS \"RiverMeadow Server\", step.status_description AS \"Notes\", users.email_address AS “Account’  FROM step full outer join target_vm on step.target_vm_ref=target_vm.id full outer join source_machine on step.source_machine_ref=source_machine.id join task on task.id=step.task_id join users on users.uuid=task.executed_by  WHERE step.status='COMPLETED_FAILURE' AND users.email_address='%(email_address)s  ORDER BY step.task_id DESC",
+            "params": [{
+                "label": "User email",
+                "name": "email_address"
+            }],
+            "drill_down": {
+                "Migration ID": "/api/1/query/migrations_by_id_1.15/migration_id/$",
+                "Source IP": "/api/1/query/get_source_by_ip_1.15/$"
             }
         }
     }
