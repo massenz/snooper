@@ -89,6 +89,16 @@ var showData = function(rawData, dataUrl) {
         });
     }
     tableEngine.setUpTableSort($("#reporting_display"));
+
+    $("a.js_executeQuery").click(function(event) {
+       var newDirective = urlEngine.rootUrl + "/" + $(this).attr("href");
+       $(this).closest("tr").find("input").each(function() {
+          var rawDirective = [$(this).attr("name"), $.trim($(this).val())];
+          newDirective += "/" + rawDirective.join("/");
+       });
+       document.location.href = newDirective;
+       return false;
+    });
 }
 
 /** URL handler. */
