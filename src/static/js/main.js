@@ -27,7 +27,7 @@ var showData = function(rawData, dataUrl) {
     var showQueries = false;
     if (rawData.hasOwnProperty("results")) {
         processedData = rawData.results;
-        if (rawData.hasOwnProperty("drill_down")) drillDown = rawData.drill_down;
+        if (rawData.hasOwnProperty("drill_down") && (rawData.drill_down !== null)) drillDown = rawData.drill_down;
     } else if (rawData.hasOwnProperty("queries")) {
         processedData = rawData.queries;
         directiveElements.unshift("All Queries");
