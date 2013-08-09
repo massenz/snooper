@@ -21,10 +21,13 @@ var showData = function(rawData, dataUrl) {
 
     var directiveElements = urlEngine.getUrlDirective().substring(1).split("/");
 
+    var drillDown = {};
+
     var processedData = [];
     var showQueries = false;
     if (rawData.hasOwnProperty("results")) {
         processedData = rawData.results;
+        if (rawData.hasOwnProperty("drill_down")) drillDown = rawData.drill_down;
     } else if (rawData.hasOwnProperty("queries")) {
         processedData = rawData.queries;
         directiveElements.unshift("All Queries");
@@ -76,6 +79,8 @@ var showData = function(rawData, dataUrl) {
                         cookedData += '<dt>'+makePrettyName(thisStep.name)+':</dt><dd>'+makePrettyStatus(thisStep.status)+'</dd>';
                     });
                     cookedData += '</dl>';
+                } else if (drillDown.hasOwnProperty(thisKey)) {
+                    cookedData = '<a href="'+urlEngine.rootUrl + drillDown[thisKey].split("$").join(cookedData).split("api/1/query/").join("")+'">'+cookedData+'</a>';
                 }
                 newRow += '<td data-colId="'+colIterator+'" class="js_colId-'+colIterator+'">'+cookedData+'</td>';
                 colIterator++;
