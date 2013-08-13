@@ -30,17 +30,53 @@ from a predefined set (eg, CSV, HTML table, etc.)
 Command-line arguments
 ^^^^^^^^^^^^^^^^^^^^^^
 
-::
+These can be seen using the ``--help`` option::
 
-    --queries   an optional input file (JSON) defining a set of SQL queries
-    --out       an optional output file
-    --host      the host to run the queries agains (default: localhost)
-    --format    the output format (currently only JSON, default, supported)
-    --query, -q the query to run (named, from the ``queries`` file)
-    --list, -l  lists the queries by name and exits
-    --env        the parameters for the DB connection (db, user, password) are defined in a
-                 configuration file, for different environments (eg, `dev` or `prod`): this defines
-                 the section of the configuration file to use
+    $ python snooper.py --help
+    usage: snooper.py [-h] [--queries QUERIES] [--out OUT] [--host HOST]
+                      [--format FORMAT] [--query QUERY] [--list] [--env ENV]
+                      [--debug] --conf CONF [--coupons COUPONS]
+                      [--provider PROVIDER] [--cloud CLOUD]
+                      [param [param ...]]
+
+    SQL command line execution tool
+
+    positional arguments:
+      param                 positional parameters for the query
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      --queries QUERIES     an optional input file (JSON) defining a set of SQL
+                            queries
+      --out OUT             an optional output file
+      --host HOST           the host to run the query against (must be running the
+                            Postgres server and have the external port accessible
+      --format FORMAT       the format for the output
+      --query QUERY, -q QUERY
+                            used in conjunction with --queries, specifies the
+                            named query to run
+      --list, -l            Lists all available queries in the files specified
+                            with the --queries flag and exits
+      --env ENV             the section in the {'const': None, 'help': 'the
+                            section in the %s configuration file, from which to
+                            take the connection configuration parameters',
+                            'option_strings': ['--env'], 'dest': 'env',
+                            'required': False, 'nargs': None, 'choices': None,
+                            'default': 'dev', 'prog': 'snooper.py', 'container':
+                            <argparse._ArgumentGroup object at 0x106e7ced0>,
+                            'type': None, 'metavar': None} configuration file,
+                            from which to take the connection configuration
+                            parameters
+      --debug               If set, the server will be run in debug mode: do NOT
+                            use in production
+      --conf CONF           The location of the configuration file which contains
+                            the connection parameters
+      --coupons COUPONS     This will generate the requested number of coupons,
+                            insert in the database and return in the --out file
+                            the list of codes. MUST specify --provider and --cloud
+                            UUIDs
+      --provider PROVIDER   The UUID of the Service Provider for the coupons
+      --cloud CLOUD         The UUID of the Cloud Target for the coupons
 
 
 
@@ -79,6 +115,22 @@ Alternatively, the script can be used to run an arbitrary SQL query from the com
 
 Please note it's an **error** to pass both the ``--queries`` argument and a query (in this case,
 the query literal would be incorrectly interpreted as one of the query's positional parameters).
+
+Promotion Codes
++++++++++++++++
+
+A special case is the use of the script to generate *promotion codes* as defined in the
+specification_ in which case the arguments used are as follows::
+
+    --coupons NUM           number of coupons to be generated
+    --provider PROVIDER     UUID of the Service Provider for the coupons
+    --cloud CLOUD           UUID of the Cloud Target for the coupons
+    --out FILE              a file that will contain a promotion code per line (generated)
+
+This can only be used with a configuration option that uses the credentials of a user that is
+granted ``UPDATE`` priviliges to the ``PROMOTION_CODES`` table (see `Connection parameters`_).
+
+.. _specification : https://github.com/RiverMeadow/encloud/blob/develop/docs/coupons.rst
 
 Connection parameters
 ^^^^^^^^^^^^^^^^^^^^^

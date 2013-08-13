@@ -50,22 +50,25 @@ class QueryAllResource(RestResource):
 class QueryResource(RestResource):
     def get(self, query, args=None):
         query = snooper.parse_queries(self._conf.queries).get(query)
-
         if query:
-            db_conn.query = query.get("sql")
+            params = None
             if args:
-                db_conn.params = snooper.parse_query_params(args.split('/'))
-            else:
-                db_conn.params = None
-            self._logger.debug('Executing query: {} - with params: {}'.format(db_conn.query,
-                                                                              db_conn.params))
-            res = db_conn.execute()
-            self._logger.debug('Found {} results'.format(res["rowcount"]))
+                params = snooper.parse_query_params(args.split('/'))
+            res = self.run_query(query.get("sql"), params)
             res["drill_down"] = query.get("drill_down")
             return res
         else:
             self._logger.error('Could not find query %s', query)
             abort(404)
+
+    def run_query(self, query, params=None):
+        db_conn.query = query
+        db_conn.params = params
+        self._logger.debug('Executing query: {} - with params: {}'.format(db_conn.query,
+                                                                          db_conn.params))
+        res = db_conn.execute()
+        self._logger.debug('Found {} results'.format(res["rowcount"]))
+        return res
 
 
 class SnooperResources(object):

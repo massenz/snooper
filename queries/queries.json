@@ -95,7 +95,7 @@
             }],
             "drill_down": {
                 "Source IP": "/api/1/query/get_source_by_ip/ip/$",
-                "Migration ID": "/api/1/query/get_migration/task.id/$"
+                "Migration ID": "/api/1/query/get_migration/task_id/$"
             }
         },
         "awesome_query": {
@@ -117,6 +117,7 @@
                 "Migration ID": "/api/1/query/migrations_by_id_1.15/migration_id/$"
             }
         },
+
         "get_source_by_ip": {
             "sql": "SELECT step.task_id AS \"Migration ID\", source_machine.host AS \"Source IP\", source_machine.description AS \"Source Hostname\", source_machine.os AS \"Operating System\", source_machine.available_drives AS \"Volumes\", target_vm.vm_name AS \"Target Name\", step.name AS \"Step Name\", step.status AS \"Status\", step.execution_start AS \"Step Start Time\", step.execution_end AS \"Step End Time\", task.executed_system_id AS \"RiverMeadow Server\", step.status_description AS \"Notes\", users.email_address AS \"Account\"  FROM step full outer join target_vm on step.target_vm_ref=target_vm.id full outer join source_machine on step.source_machine_ref=source_machine.id join task on task.id=step.task_id join users on users.uuid=task.executed_by  WHERE source_machine.host=%(ip)s  ORDER BY step.execution_start DESC",
             "params": [{
@@ -148,6 +149,19 @@
             "drill_down": {
                 "Migration ID": "/api/1/query/migrations_by_id_1.15/migration_id/$",
                 "Source IP": "/api/1/query/get_source_by_ip_1.15/$"
+            }
+        },
+
+        "get_source_by_uuid": {
+            "sql": "SELECT uuid, host, description \"Description\", user_name \"OS User\", os \"OS\", last_task_id \"Migration ID\", creation_time \"Created at\", available_drives \"Drives\", selected_drives \"Collected Drives\" from source_machine where uuid = %(uuid)s",
+            "params": [{
+                "label": "Source machine UUID",
+                "name": "uuid"
+            }],
+            "drill_down": {
+                "Migration ID": "/api/1/query/migrations_by_id_1.15/migration_id/$",
+                "User": "/api/1/query/get_user_by_email/email/$",
+                "host": "/api/1/query/get_source_by_ip_1.15/ip/$"
             }
         }
     }

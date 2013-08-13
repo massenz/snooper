@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import random
+import string
 
 __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
 
@@ -11,6 +13,7 @@ import psycopg2
 import psycopg2.errorcodes
 import re
 import sys
+import uuid
 
 
 class DbSnooper(object):
@@ -40,8 +43,6 @@ class DbSnooper(object):
             @type query: string
         """
         port = int(conf.get('port')) if conf.get('port') else None
-        print '>>>', conf
-
         try:
             self._conn = psycopg2.connect(database=conf['db'],
                                           user=conf.get('user'),
@@ -80,7 +81,7 @@ class DbSnooper(object):
         """
         self._params = params
 
-    def execute(self):
+    def execute(self, fetch=True):
         """ Executes the query that was passed in at construction or set afterwards
 
             @return: a dictionary constructed with the results (cursor) and
@@ -131,8 +132,9 @@ class DbSnooper(object):
             raise RuntimeError('Must specify a SQL query before attempting to execute it')
         self._cur.execute(self._query, self._params)
         # TODO: psycopg2 supports paginations, as well as retrieving results one row at a time
-        results = self._cur.fetchall()
-        return self._res_to_dict(results)
+        if fetch:
+            results = self._cur.fetchall()
+            return self._res_to_dict(results)
 
     def _res_to_dict(self, cursor):
         res = {
@@ -151,6 +153,9 @@ class DbSnooper(object):
                 results.append(another)
             res['results'] = results
         return res
+
+    def commit(self):
+        self._conn.commit()
 
 
 def parse_args():
@@ -180,6 +185,12 @@ def parse_args():
                              'production')
     parser.add_argument('--conf', help='The location of the configuration file which contains the'
                                        ' connection parameters', required=True)
+    parser.add_argument('--coupons', type=int,
+                        help='This will generate the requested number of coupons, '
+                             'insert in the database and return in the --out file the list of '
+                             'codes. MUST specify --provider and --cloud UUIDs')
+    parser.add_argument('--provider', help='The UUID of the Service Provider for the coupons')
+    parser.add_argument('--cloud', help='The UUID of the Cloud Target for the coupons')
     parser.add_argument('query_params', metavar='param', nargs='*', help='positional parameters '
                                                                          'for the query')
     return parser.parse_args()
@@ -241,6 +252,10 @@ def main():
         @return: the query result or None, if the output is sent to a file
     """
     conf = parse_args()
+    if conf.coupons:
+        make_coupons(conf)
+        return
+
     query_to_run = None
     query_params = None
     if conf.queries:
@@ -270,6 +285,41 @@ def main():
                       separators=(',', ': '))
     else:
         return json.dumps(results, sort_keys=True, indent=4, separators=(',', ': '))
+
+
+def generate_code(sep='-', segments=3, segment_len=4,
+                  chars=string.digits + string.ascii_uppercase):
+    parts = [''.join(random.choice(chars) for x in range(segment_len)) for y in range(segments)]
+    return sep.join(parts)
+
+
+def make_coupons(conf):
+    if not conf.provider or not conf.cloud:
+        raise RuntimeError('To generate coupons, must specifiy the UUIDs of the Service Provider '
+                           'and the Cloud Targets - see: '
+                           'https://github.com/RiverMeadow/encloud/blob/develop/docs/coupons.rst')
+    coupon_values = {
+        'provider_ref': conf.provider,
+        'cloud_target_ref': conf.cloud,
+        'count': 1,
+        'valid': True
+    }
+    print 'Generating %d coupons to %s' % (conf.coupons, conf.out)
+    snooper = DbSnooper(conf=config_connection(conf))
+    with open(conf.out, 'w') as coupon_list:
+        for i in range(conf.coupons):
+            coupon_values['uuid'] = str(uuid.uuid4())
+            coupon_values['code'] = generate_code()
+            query = "INSERT INTO PROMOTION_CODES (uuid, provider_ref, cloud_target_ref, code, " \
+                    "count, valid) VALUES (%(uuid)s, %(provider_ref)s, %(cloud_target_ref)s, " \
+                    "%(code)s, %(count)s, %(valid)s)"
+            snooper.query = query
+            snooper.params = coupon_values
+            snooper.execute(fetch=False)
+            snooper.commit()
+            coupon_list.writelines([coupon_values['code'], '\n'])
+            print '>>>', coupon_values['code']
+    print 'Done - generated %d coupons' % (conf.coupons,)
 
 
 if __name__ == '__main__':
