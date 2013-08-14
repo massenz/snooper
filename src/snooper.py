@@ -167,13 +167,29 @@ class CouponsManager(object):
     PROVIDER_QUERY = "SELECT UUID \"uuid\" FROM ORGANIZATIONS WHERE NAME=%(provider)s AND " \
                      "TYPE='SERVICE_PROVIDER'"
 
-    CLOUD_QUERY = "SELECT UUID \"uuid\", URL \"url\" FROM CLOUD_TARGETS WHERE NAME=%(name)s"
+    CLOUD_QUERY = "SELECT t.UUID \"uuid\", t.URL \"url\" FROM CLOUD_TARGETS t, ORGANIZATIONS o " \
+                  "WHERE t.provider_ref = o.uuid " \
+                  "AND t.NAME=%(cloud)s " \
+                  "AND o.name=%(provider)s " \
+                  "AND o.type='SERVICE_PROVIDER'"
 
     CODES_QUERY = "INSERT INTO PROMOTION_CODES (uuid, provider_ref, cloud_target_ref, code, " \
                   "count, valid) VALUES (%(uuid)s, %(provider_ref)s, %(cloud_target_ref)s, " \
                   "%(code)s, %(count)s, %(valid)s)"
 
     def __init__(self, conf):
+        """ Initializes a Coupons Manager
+
+            The argument is a dict-like configuration object that defines the provider and cloud
+            target, along with a set of connection configurations for the database.
+
+            At a minimum, ```conf``` will have the following keys:
+
+                'provider'  the name of the service provider
+                'cloud'     the name of the target cloud
+
+
+        """
         self.provider = conf.provider
         self.cloud_target = conf.cloud
         self._db = DbSnooper(conf=config_connection(conf))
@@ -206,7 +222,10 @@ class CouponsManager(object):
             @rtype: tuple or None
         """
         self._db.query = CouponsManager.CLOUD_QUERY
-        self._db.params = {'name': self.cloud_target}
+        self._db.params = {
+            'cloud': self.cloud_target,
+            'provider': self.provider
+        }
         res = self._db.execute()
         if res['rowcount'] > 0:
             return res['results'][0]['uuid'], res['results'][0]['url']
@@ -265,6 +284,7 @@ class CouponsManager(object):
                 for code in codes:
                     coupon_list.writelines([code, '\n'])
             print 'Saved the list of codes to %s' % (filename,)
+        return codes
 
 
 def parse_args():
@@ -342,8 +362,16 @@ def print_queries(queries):
 def config_connection(conf):
     """ Returns a connection configuration dict, based on the chosen configuration.
 
-     Uses the ```CONF``` file to retrieve the appropriate DB connection configuration parameters,
-      based on the chosen ```--config``` option
+     Reads in a configuration file to retrieve the appropriate DB connection configuration
+     parameters.
+
+     The passed in L{ArgumentParser} configuration object, must contain at a minimum the
+     following fields: {``host``, ``conf``}, the configuration file (whose name is stored in the
+     ``conf`` field) will have further to have the following values defined: 'db',
+     'user' and 'password' for the DB connection.
+
+     @return: a configuration dictionary that can be used to construct a L{DbSnooper} object
+     @rtype: dict
     """
     config = ConfigParser.ConfigParser()
     config.read(conf.conf)
@@ -363,9 +391,10 @@ def run_query():
     conf = parse_args()
     if conf.coupons:
         mgr = CouponsManager(conf)
-        mgr.make_coupons(conf.coupons, conf.out)
+        codes = mgr.make_coupons(conf.coupons, conf.out)
+        if not conf.out:
+            return codes
         return
-
     query_to_run = None
     query_params = None
     if conf.queries:

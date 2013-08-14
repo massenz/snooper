@@ -1,10 +1,11 @@
-====================
-SQL Script execution
-====================
+========================================
+Snooper - a DB query execution framework
+========================================
 
 :Date: 2013-07-11
 :Author: M. Massenzio
-:Version: 0.1
+:Version: 0.2
+:Updated: 2013-08-13
 
 Use Case
 --------
@@ -139,6 +140,23 @@ An example invocation would be::
 
 Both the ``provider`` and the ``cloud`` **MUST** exist in the database for the coupons to be
 successfully generated.
+
+To get all service providers available, use::
+
+    python snooper.py --conf snooper.conf --host 10.10.121.99 --env dev \
+            "SELECT * FROM ORGANIZATIONS WHERE TYPE='SERVICE_PROVIDER'"
+
+and similarly for cloud targets::
+
+    python src/snooper.py --conf snooper.conf --host 10.10.121.99 --env dev \
+            "SELECT name FROM CLOUD_TARGETS"
+
+To get the cloud targets available only for a given service provider (whose ``name`` was retrieved
+with the query above), use this query::
+
+    "SELECT t.name FROM CLOUD_TARGETS t, ORGANIZATIONS o WHERE t.provider_ref = o.uuid \
+            AND o.name='name' AND o.type='SERVICE_PROVIDER'"
+
 
 Connection parameters
 ^^^^^^^^^^^^^^^^^^^^^
