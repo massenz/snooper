@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+
+__author__ = 'Marco Massenzio (marco@rivermeadow.com)'
+
+import snooper
+
+snooper.main()

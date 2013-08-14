@@ -48,7 +48,7 @@ These can be seen using the ``--help`` option::
       -h, --help            show this help message and exit
       --queries QUERIES     an optional input file (JSON) defining a set of SQL
                             queries
-      --out OUT             an optional output file
+      --out FILE            an optional output file
       --host HOST           the host to run the query against (must be running the
                             Postgres server and have the external port accessible
       --format FORMAT       the format for the output
@@ -75,8 +75,8 @@ These can be seen using the ``--help`` option::
                             insert in the database and return in the --out file
                             the list of codes. MUST specify --provider and --cloud
                             UUIDs
-      --provider PROVIDER   The UUID of the Service Provider for the coupons
-      --cloud CLOUD         The UUID of the Cloud Target for the coupons
+      --provider PROVIDER   The name of the Service Provider for the coupons
+      --cloud CLOUD         The name of the Cloud Target for the promotion codes
 
 
 
@@ -106,7 +106,7 @@ the script would then run the query as follows::
 The *(name, value)* pair must always be passed like shown above (with a space, **no** ``=``):
 this would be an error::
 
-    snooper --queries queries.json --host 10.10.121.99 --query get_user id=99
+    snooper --queries queries.json --host 10.10.121.99 --query get_user id=99  # WRONG
 
 
 Alternatively, the script can be used to run an arbitrary SQL query from the command line::
@@ -123,8 +123,8 @@ A special case is the use of the script to generate *promotion codes* as defined
 specification_ in which case the arguments used are as follows::
 
     --coupons NUM           number of coupons to be generated
-    --provider PROVIDER     UUID of the Service Provider for the coupons
-    --cloud CLOUD           UUID of the Cloud Target for the coupons
+    --provider PROVIDER     name of the Service Provider for the coupons
+    --cloud CLOUD           name of the Cloud Target for the coupons
     --out FILE              a file that will contain a promotion code per line (generated)
 
 This can only be used with a configuration option that uses the credentials of a user that is
@@ -132,11 +132,19 @@ granted ``UPDATE`` priviliges to the ``PROMOTION_CODES`` table (see `Connection 
 
 .. _specification : https://github.com/RiverMeadow/encloud/blob/develop/docs/coupons.rst
 
+An example invocation would be::
+
+    python snooper.py --coupons=3 --provider=VMWare --cloud=vcloudTarget \
+        --out=/Users/marco/coupons.txt --conf=snooper.conf --env=dev --host=10.10.121.99
+
+Both the ``provider`` and the ``cloud`` **MUST** exist in the database for the coupons to be
+successfully generated.
+
 Connection parameters
 ^^^^^^^^^^^^^^^^^^^^^
 
-These are taken from a configuration file (``snooper.conf``) and grouped by ``environments``,
-as in::
+These are taken from a configuration file (defined by the ``--conf`` option) and grouped
+by *environments*, as in::
 
     # Connection configuration for Snooper
 
@@ -164,7 +172,7 @@ execute a chain of *drill-down* queries.
 Taking as an example this query::
 
     "queries": {
-        "get_user_by_id": {
+        "get_user_by_role": {
             "sql": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=?",
             "drill_down": {
                 "uuid": "/api/1/query/get_user_by_id/id/$"
@@ -224,6 +232,16 @@ like::
         "hostname": "/api/1/query/get_hostname/hostname/$/username/$user/organization/$org"
     }
 
+although it would be perfectly valid to use something like::
+
+    "drill_down": {
+        "Source UUID": "/api/1/query/get_source_by_id/id/$",
+        "hostname": "/api/1/query/get_hostname/hostname/$/username/a_user/organization/my_org"
+    }
+
+note in this case, the additional arguments are not taken from the query result, but are fixed: all
+the client needs to do, is to substitute the ``$`` placeholder with the column value.
+
 REST API
 --------
 
@@ -248,9 +266,19 @@ Response::
 Execute a query
 ^^^^^^^^^^^^^^^
 
-::
+The pattern is ``query/<query_name/<param/value in pairs>`` where there can be an arbitrary number of
+*{param, value}* pairs, following the query's name: the parameters' values will be substituted in the
+query.
 
-    GET /api/1/query/get_user/role/ProviderAdmin
+Given::
+
+    "get_user_by_role": {
+            "sql": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=?",
+            ...
+
+We can execute the following request::
+
+    GET /api/1/query/get_user_by_role/role/ProviderAdmin
 
 Response::
 
@@ -336,6 +364,10 @@ Response::
         "query": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=?",
         "num_args": 1
     }
+
+Installation
+------------
+
 
 How-To configure PostgreSQL
 ---------------------------
