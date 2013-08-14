@@ -158,6 +158,115 @@ class DbSnooper(object):
         self._conn.commit()
 
 
+class CouponsManager(object):
+    """ Manages the creation of coupons
+
+    """
+    # TODO: we will need to eventually add functionality to manage, delete, view etc. coupons
+
+    PROVIDER_QUERY = "SELECT UUID \"uuid\" FROM ORGANIZATIONS WHERE NAME=%(provider)s AND " \
+                     "TYPE='SERVICE_PROVIDER'"
+
+    CLOUD_QUERY = "SELECT UUID \"uuid\", URL \"url\" FROM CLOUD_TARGETS WHERE NAME=%(name)s"
+
+    CODES_QUERY = "INSERT INTO PROMOTION_CODES (uuid, provider_ref, cloud_target_ref, code, " \
+                  "count, valid) VALUES (%(uuid)s, %(provider_ref)s, %(cloud_target_ref)s, " \
+                  "%(code)s, %(count)s, %(valid)s)"
+
+    def __init__(self, conf):
+        self.provider = conf.provider
+        self.cloud_target = conf.cloud
+        self._db = DbSnooper(conf=config_connection(conf))
+
+    def _generate_code(self, sep='-', segments=3, segment_len=4,
+                       chars=string.digits + string.ascii_uppercase):
+        parts = [''.join(random.choice(chars) for x in range(segment_len)) for y in range(segments)]
+        return sep.join(parts)
+
+
+    def _get_provider_uuid(self):
+        """ Finds the UUID for the Service Provider whose name is ```provider```
+
+        @type db: L{DbSnooper}
+        @type provider: string
+        """
+        self._db.query = CouponsManager.PROVIDER_QUERY
+        self._db.params = {'provider': self.provider}
+        res = self._db.execute()
+        if res['rowcount'] > 0:
+            return res['results'][0]['uuid']
+
+    def _get_target_cloud_info(self):
+        """ Collects information about a given cloud target
+
+            @type db: L{DbSnooper}
+            @type cloud: string
+
+            @return: a t-uple with (uuid, url) for the target cloud, if found
+            @rtype: tuple or None
+        """
+        self._db.query = CouponsManager.CLOUD_QUERY
+        self._db.params = {'name': self.cloud_target}
+        res = self._db.execute()
+        if res['rowcount'] > 0:
+            return res['results'][0]['uuid'], res['results'][0]['url']
+            # Need to do this or the caller cannot just do a simple `if not uuid`
+        return None, None
+
+    def make_coupons(self, count, filename=None):
+        """ Creates ```count`` coupons, saving them to db, and optionally storing them to a CSV
+        file
+
+        """
+        if not self.provider or not self.cloud_target:
+            raise RuntimeError(
+                'To generate coupons, must specifiy the name of the Service Provider '
+                'and the Cloud Target - see: '
+                'https://github.com/RiverMeadow/encloud/blob/develop/docs/coupons.rst')
+        coupon_values = {
+            'count': 1,
+            'valid': True
+        }
+        print 'Generating %d Promotion Codes' % (count,)
+
+        provider_uuid = self._get_provider_uuid()
+        if not provider_uuid:
+            raise RuntimeError("Could not find the ID for provider %s" % (self.provider,))
+        coupon_values['provider_ref'] = provider_uuid
+        print 'Found Service Provider %s [%s]' % (self.provider, provider_uuid)
+
+        cloud_target_uuid, cloud_target_url = self._get_target_cloud_info()
+        if not cloud_target_uuid:
+            raise RuntimeError("Could not find the ID for cloud %s" % (self.cloud_target,))
+        coupon_values['cloud_target_ref'] = cloud_target_uuid
+        print 'Found Cloud Target %s [%s]: %s' % (self.cloud_target, cloud_target_uuid,
+                                                  cloud_target_url)
+        codes = []
+        for i in range(count):
+            coupon_values['uuid'] = str(uuid.uuid4())
+            coupon_values['code'] = self._generate_code()
+            self._db.query = CouponsManager.CODES_QUERY
+            self._db.params = coupon_values
+            self._db.execute(fetch=False)
+            self._db.commit()
+            codes.append(coupon_values['code'])
+        print 'Done - generated %d coupons' % (count,)
+
+        if filename:
+            with open(filename, 'w') as coupon_list:
+                coupon_list.writelines(['# RiverMeadow Software, Inc. - created ',
+                                        datetime.datetime.now().isoformat(),
+                                        '\n#\n# For Service Provider: %s [%s]\n' % (self.provider,
+                                                                                    provider_uuid),
+                                        '# Cloud Target: %s [%s] %s\n' % (self.cloud_target,
+                                                                          cloud_target_uuid,
+                                                                          cloud_target_url),
+                                        '# This file contains %d promotion codes\n\n' % (count,)])
+                for code in codes:
+                    coupon_list.writelines([code, '\n'])
+            print 'Saved the list of codes to %s' % (filename,)
+
+
 def parse_args():
     """ Parses the command line arguments and returns a configuration dict
 
@@ -253,7 +362,8 @@ def run_query():
     """
     conf = parse_args()
     if conf.coupons:
-        make_coupons(conf)
+        mgr = CouponsManager(conf)
+        mgr.make_coupons(conf.coupons, conf.out)
         return
 
     query_to_run = None
@@ -285,81 +395,6 @@ def run_query():
                       separators=(',', ': '))
     else:
         return json.dumps(results, sort_keys=True, indent=4, separators=(',', ': '))
-
-
-def generate_code(sep='-', segments=3, segment_len=4,
-                  chars=string.digits + string.ascii_uppercase):
-    parts = [''.join(random.choice(chars) for x in range(segment_len)) for y in range(segments)]
-    return sep.join(parts)
-
-
-def get_provider_uuid(db, provider):
-    """ Finds the UUID for the Service Provider whose name is ```provider```
-
-    @type db: L{DbSnooper}
-    @type provider: string
-    """
-    db.query = "SELECT UUID \"uuid\" FROM ORGANIZATIONS WHERE NAME=%(provider)s AND " \
-               "TYPE='SERVICE_PROVIDER'"
-    db.params = {'provider': provider}
-    res = db.execute()
-    if res['rowcount'] > 0:
-        return res['results'][0]['uuid']
-
-def get_target_cloud_info(db, cloud):
-    """ Collects information about a given cloud target
-
-        @type db: L{DbSnooper}
-        @type cloud: string
-
-        @return: a t-uple with (uuid, url) for the target cloud, if found
-        @rtype: tuple or None
-    """
-    db.query = "SELECT UUID \"uuid\", URL \"url\" FROM CLOUD_TARGETS WHERE NAME=%(name)s"
-    db.params = {'name': cloud}
-    res = db.execute()
-    if res['rowcount'] > 0:
-        return res['results'][0]['uuid'], res['results'][0]['url']
-    # Need to do this or the caller cannot just do a simple `if not uuid`
-    return None, None
-
-
-def make_coupons(conf):
-    if not conf.provider or not conf.cloud:
-        raise RuntimeError('To generate coupons, must specifiy the name of the Service Provider '
-                           'and the Cloud Target - see: '
-                           'https://github.com/RiverMeadow/encloud/blob/develop/docs/coupons.rst')
-    coupon_values = {
-        'count': 1,
-        'valid': True
-    }
-    print 'Generating %d coupons to %s' % (conf.coupons, conf.out)
-    snooper = DbSnooper(conf=config_connection(conf))
-    provider_uuid = get_provider_uuid(snooper, conf.provider)
-    if not provider_uuid:
-        raise RuntimeError("Could not find the ID for provider %s" % (conf.provider,))
-    coupon_values['provider_ref'] = provider_uuid
-    print 'Found Service Provider %s [%s]' % (conf.provider, provider_uuid)
-
-    cloud_target_uuid, cloud_target_url = get_target_cloud_info(snooper, conf.cloud)
-    if not cloud_target_uuid:
-        raise RuntimeError("Could not find the ID for cloud %s" % (conf.cloud,))
-    coupon_values['cloud_target_ref'] = cloud_target_uuid
-    print 'Found Cloud Target %s [%s]: %s' % (conf.cloud, cloud_target_uuid, cloud_target_url)
-
-    with open(conf.out, 'w') as coupon_list:
-        for i in range(conf.coupons):
-            coupon_values['uuid'] = str(uuid.uuid4())
-            coupon_values['code'] = generate_code()
-            query = "INSERT INTO PROMOTION_CODES (uuid, provider_ref, cloud_target_ref, code, " \
-                    "count, valid) VALUES (%(uuid)s, %(provider_ref)s, %(cloud_target_ref)s, " \
-                    "%(code)s, %(count)s, %(valid)s)"
-            snooper.query = query
-            snooper.params = coupon_values
-            snooper.execute(fetch=False)
-            snooper.commit()
-            coupon_list.writelines([coupon_values['code'], '\n'])
-    print 'Done - generated %d coupons, saved to %s' % (conf.coupons, conf.out)
 
 
 def main():
