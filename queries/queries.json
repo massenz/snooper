@@ -58,7 +58,7 @@
         "get_success_duration": {
             "sql": "select task.id \"Migration ID\", date(step.status_recorded_at) \"Date\", source_machine.host, source_machine.selected_drives \"Drives\", (step.status_recorded_at - step.execution_start) \"Duration\" from source_machine, step, task where source_machine.id = step.source_machine_ref AND step.name = 'CollectDataStep' and step.status = 'COMPLETED_SUCCESS' and task.id = step.task_id order by step.status_recorded_at ASC",
             "drill_down": {
-                "Migration ID": "/api/1/query/get_migration/task.id/$"
+                "Migration ID": "/api/1/query/get_migration/task_id/$"
             }
         },
 
@@ -95,7 +95,8 @@
             }],
             "drill_down": {
                 "Source IP": "/api/1/query/get_source_by_ip/ip/$",
-                "Migration ID": "/api/1/query/get_migration/task_id/$"
+                "Migration ID": "/api/1/query/get_migration/task_id/$",
+                "Account": "/api/1/query/get_user_by_email/email/$"
             }
         },
         "awesome_query": {
@@ -113,7 +114,7 @@
                 "name": "email_address"
             }],
             "drill_down": {
-                "Migration user": "/api/1/query/get_user_by_email/$",
+                "Migration user": "/api/1/query/get_user_by_email/email/$",
                 "Migration ID": "/api/1/query/migrations_by_id_1.15/migration_id/$"
             }
         },
