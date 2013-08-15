@@ -8,6 +8,7 @@ To access the Prod postgresql::
     psql -d dencloud -U rmview -h 10.10.122.120
 
 Install gcc, Python 2.7 and easy_install::
+
     sudo bash
     yum install rmpython27.x86_64
     yum install rmpython27-setuptools
@@ -33,7 +34,7 @@ Try that you can run a query::
 
     snooper --conf snooper/snooper.conf --host 10.10.122.120 --env prod "SELECT name FROM CLOUD_TARGETS"
 
-Launch the web server, this will be reachable at: `http://10.10.20.180:5000`_
+Launch the web server, this will be reachable at: http://10.10.20.180:5000
 ::
 
     snooper-webui --conf snooper/snooper.conf --queries snooper/queries.json --env prod --host 10.10.122.120 --debug
