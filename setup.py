@@ -8,10 +8,10 @@ import re
 import setuptools
 
 
-VERSION = '0.10'
+VERSION = '0.11'
 
 
-def get_data_files(src_dir, dest_dir, exclude_re=None):
+def get_data_files(source_dest_pairs):
     """ Helper method for setup.py.
 
     This method takes in a source and destination directory
@@ -20,17 +20,15 @@ def get_data_files(src_dir, dest_dir, exclude_re=None):
     Note: The dest_dir should usually be prefixed with the package name (i.e. 'my_package/etc').
           Otherwise pkg_resources.get_* will not be able to find your file/resource.
     """
-    if exclude_re:
-        exclude_re = re.compile(exclude_re)
     data_files = []
-    for src_root, _, files in os.walk(src_dir):
-        dest_root = src_root.replace(src_dir, dest_dir, 1)
-        dir_files = []
-        for file_ in files:
-            if exclude_re and exclude_re.match(file_):
-                pass
-            dir_files.append(os.path.join(src_root, file_))
-        data_files.append((dest_root, dir_files))
+    for src_dir, dest_dir in source_dest_pairs:
+        for src_root, _, files in os.walk(src_dir):
+            dest_root = src_root.replace(src_dir, dest_dir, 1)
+            dir_files = []
+            for file_ in files:
+                dir_files.append(os.path.join(src_root, file_))
+            data_files.append((dest_root, dir_files))
+    print '****', data_files
     return data_files
 
 
@@ -40,6 +38,10 @@ def get_requirements(filename='requirements.txt'):
         for line in reqs.readlines():
             requirements.append(line.strip())
     return requirements
+
+
+def to_EGG(dir):
+    return os.path.join('EGG-INFO', 'scripts', dir)
 
 
 setuptools.setup(
@@ -52,5 +54,8 @@ setuptools.setup(
     scripts=['scripts/snooper',
              'scripts/snooper-webui',
              'src/server.py',
-             'src/snooper.py']
+             'src/snooper.py'],
+    data_files=get_data_files([('src/static', to_EGG('static')),
+                               ('src/templates', to_EGG('templates')),
+                               ('src/ui', to_EGG('ui'))])
 )

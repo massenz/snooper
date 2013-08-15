@@ -116,7 +116,7 @@ def run_server():
         app.logger.setLevel(logging.DEBUG)
         app.logger.addHandler(logging.StreamHandler())
     routes = SnooperResources(api, conf, app.logger)
-    app.run(debug=conf.debug)
+    app.run(debug=conf.debug, host='0.0.0.0')
 
 if __name__ == '__main__':
     run_server()
