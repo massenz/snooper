@@ -93,19 +93,26 @@ class SnooperResources(object):
 
 
 class PromotionCodesResource(RestResource):
-    def post(self, count):
+    def __init__(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('cloud', location='json')
-        parser.add_argument('provider', location='json')
-        parser.add_argument('cloud_type', location='json')
-        parser.add_argument('created_by', location='json')
-        args = parser.parse_args()
+        parser.add_argument('cloud', location='json', required=True)
+        parser.add_argument('provider', location='json', required=True)
+        parser.add_argument('cloud_type', location='json', required=True)
+        parser.add_argument('created_by', location='json', required=True)
+        self._parser = parser
+
+    def post(self, count):
+        args = self._parser.parse_args()
         mgr = snooper.CouponsManager(args['provider'],
-                             args['cloud'],
-                             args['cloud_type'],
-                             args['created_by'], db=db_conn)
-        codes = mgr.make_coupons(count, filename='/tmp/coupons.csv')
-        return send_file('/tmp/coupons.csv', as_attachment=True)
+                                     args['cloud'],
+                                     args['cloud_type'],
+                                     args['created_by'], db=db_conn)
+        filename = '/tmp/coupons.csv'
+        try:
+            mgr.make_coupons(count, filename=filename)
+            return send_file(filename, as_attachment=True)
+        except RuntimeError:
+            abort(500)
 
 
 def get_db():

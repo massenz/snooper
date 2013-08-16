@@ -157,6 +157,21 @@ with the query above), use this query::
     "SELECT t.name FROM CLOUD_TARGETS t, ORGANIZATIONS o WHERE t.provider_ref = o.uuid \
             AND o.name='name' AND o.type='SERVICE_PROVIDER'"
 
+Promotion Codes REST API
+++++++++++++++++++++++++
+
+They can be created using the following endpoint and parameters::
+
+    POST /codes/<int:count>
+
+    {
+        "created_by": "1xa@rivermeadow.com",
+        "cloud_type": "VCLOUD",
+        "cloud": "vcloudTarget",
+        "provider": "VMWare"
+    }
+
+This will return a CSV file with a list of CODES.
 
 Connection parameters
 ^^^^^^^^^^^^^^^^^^^^^
