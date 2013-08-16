@@ -167,15 +167,17 @@ class CouponsManager(object):
     PROVIDER_QUERY = "SELECT UUID \"uuid\" FROM ORGANIZATIONS WHERE NAME=%(provider)s AND " \
                      "TYPE='SERVICE_PROVIDER'"
 
-    CLOUD_QUERY = "SELECT t.UUID \"uuid\", t.URL \"url\" FROM CLOUD_TARGETS t, ORGANIZATIONS o " \
+    CLOUD_QUERY = "SELECT t.UUID \"uuid\", t.URL \"url\", t.name \"name\", " \
+                  "t.target_type \"type\" FROM CLOUD_TARGETS t, ORGANIZATIONS o " \
                   "WHERE t.provider_ref = o.uuid " \
                   "AND t.NAME=%(cloud)s " \
                   "AND o.name=%(provider)s " \
                   "AND o.type='SERVICE_PROVIDER'"
 
     CODES_QUERY = "INSERT INTO PROMOTION_CODES (uuid, provider_ref, cloud_target_ref, code, " \
-                  "count, valid) VALUES (%(uuid)s, %(provider_ref)s, %(cloud_target_ref)s, " \
-                  "%(code)s, %(count)s, %(valid)s)"
+                  "count, valid, cloud_target_name, cloud_target_type) VALUES (%(uuid)s, " \
+                  "%(provider_ref)s, %(cloud_target_ref)s, %(code)s, %(count)s, %(valid)s," \
+                  "%(cloud_target_name)s, %(cloud_target_type)s)"
 
     def __init__(self, conf):
         """ Initializes a Coupons Manager
@@ -192,6 +194,7 @@ class CouponsManager(object):
         """
         self.provider = conf.provider
         self.cloud_target = conf.cloud
+        self.cloud_type = conf.cloud_type
         self._db = DbSnooper(conf=config_connection(conf))
 
     def _generate_code(self, sep='-', segments=3, segment_len=4,
@@ -224,13 +227,12 @@ class CouponsManager(object):
         self._db.query = CouponsManager.CLOUD_QUERY
         self._db.params = {
             'cloud': self.cloud_target,
-            'provider': self.provider
+            'provider': self.provider,
         }
         res = self._db.execute()
         if res['rowcount'] > 0:
-            return res['results'][0]['uuid'], res['results'][0]['url']
-            # Need to do this or the caller cannot just do a simple `if not uuid`
-        return None, None
+            info = res['results'][0]
+            return info
 
     def make_coupons(self, count, filename=None):
         """ Creates ```count`` coupons, saving them to db, and optionally storing them to a CSV
@@ -254,12 +256,21 @@ class CouponsManager(object):
         coupon_values['provider_ref'] = provider_uuid
         print 'Found Service Provider %s [%s]' % (self.provider, provider_uuid)
 
-        cloud_target_uuid, cloud_target_url = self._get_target_cloud_info()
-        if not cloud_target_uuid:
-            raise RuntimeError("Could not find the ID for cloud %s" % (self.cloud_target,))
-        coupon_values['cloud_target_ref'] = cloud_target_uuid
-        print 'Found Cloud Target %s [%s]: %s' % (self.cloud_target, cloud_target_uuid,
-                                                  cloud_target_url)
+        info = self._get_target_cloud_info()
+        if not info:
+            # This covers the case for when a target cloud is not available, and one will be
+            # created at code redemption time (eg, for vmware VHCS)
+            print 'No cloud target found for %s' % (self.cloud_target,)
+            coupon_values['cloud_target_ref'] = None
+            coupon_values['cloud_target_name'] = self.cloud_target
+            coupon_values['cloud_target_type'] = self.cloud_type
+        else:
+            print 'Found Cloud Target %s [%s]: %s' % (self.cloud_target, info.get('uuid'),
+                                                      info.get('url'))
+            coupon_values['cloud_target_ref'] = info.get('uuid')
+            coupon_values['cloud_target_name'] = info.get('name')
+            coupon_values['cloud_target_type'] = info.get('type')
+
         codes = []
         for i in range(count):
             coupon_values['uuid'] = str(uuid.uuid4())
@@ -277,9 +288,7 @@ class CouponsManager(object):
                                         datetime.datetime.now().isoformat(),
                                         '\n#\n# For Service Provider: %s [%s]\n' % (self.provider,
                                                                                     provider_uuid),
-                                        '# Cloud Target: %s [%s] %s\n' % (self.cloud_target,
-                                                                          cloud_target_uuid,
-                                                                          cloud_target_url),
+                                        '# Cloud Target: %s\n' % (self.cloud_target,),
                                         '# This file contains %d promotion codes\n\n' % (count,)])
                 for code in codes:
                     coupon_list.writelines([code, '\n'])
@@ -319,7 +328,11 @@ def parse_args():
                              'insert in the database and return in the --out file the list of '
                              'codes. MUST specify --provider and --cloud UUIDs')
     parser.add_argument('--provider', help='The name of the Service Provider for the coupons')
-    parser.add_argument('--cloud', help='The name of the Cloud Target for the coupons')
+    parser.add_argument('--cloud', help='The name of the Cloud Target for the coupons; if the'
+                                        ' targets does not exist, it will be used for the "name" '
+                                        'field, when one will be created')
+    parser.add_argument('--cloud-type', help='Optional, will be used if the Cloud Target does not'
+                                             ' exist, as its "type" when it will be created')
     parser.add_argument('query_params', metavar='param', nargs='*', help='positional parameters '
                                                                          'for the query')
     return parser.parse_args()
