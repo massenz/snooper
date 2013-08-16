@@ -174,12 +174,16 @@ class CouponsManager(object):
                   "AND o.name=%(provider)s " \
                   "AND o.type='SERVICE_PROVIDER'"
 
-    CODES_QUERY = "INSERT INTO PROMOTION_CODES (uuid, provider_ref, cloud_target_ref, code, " \
-                  "count, valid, cloud_target_name, cloud_target_type) VALUES (%(uuid)s, " \
-                  "%(provider_ref)s, %(cloud_target_ref)s, %(code)s, %(count)s, %(valid)s," \
-                  "%(cloud_target_name)s, %(cloud_target_type)s)"
+    CODES_QUERY = "INSERT INTO PROMOTION_CODES " \
+                  "(uuid, provider_ref, cloud_target_ref, code, count, valid," \
+                  " cloud_target_name, cloud_target_type, created_by) " \
+                  "VALUES " \
+                  "(%(uuid)s, %(provider_ref)s, %(cloud_target_ref)s, %(code)s, %(count)s," \
+                  " %(valid)s,%(cloud_target_name)s, %(cloud_target_type)s, %(created_by)s)"
 
-    def __init__(self, conf):
+    USER_QUERY = "SELECT UUID FROM USERS WHERE EMAIL_ADDRESS=%(email)s"
+
+    def __init__(self, provider, cloud, cloud_type, created_by, db=None, conf=None):
         """ Initializes a Coupons Manager
 
             The argument is a dict-like configuration object that defines the provider and cloud
@@ -189,25 +193,28 @@ class CouponsManager(object):
 
                 'provider'  the name of the service provider
                 'cloud'     the name of the target cloud
+                'cloud_type' the type of cloud (eg, VCLOUD)
+                'created_by' the user that will be responsible for coupon creation
 
+            See ```config_connnection()``` for details about the connection configuration.
 
+            @param db: a connection to a postgresql instance, if None, it will try to create a
+                new one using connection configuration parameters from ```conf```
+            @type db: L{DbSnooper}
         """
-        self.provider = conf.provider
-        self.cloud_target = conf.cloud
-        self.cloud_type = conf.cloud_type
-        self._db = DbSnooper(conf=config_connection(conf))
+        self.provider = provider
+        self.cloud_target = cloud
+        self.cloud_type = cloud_type
+        self.created_by = created_by
+        self._db = db or DbSnooper(conf=config_connection(conf))
 
     def _generate_code(self, sep='-', segments=3, segment_len=4,
                        chars=string.digits + string.ascii_uppercase):
         parts = [''.join(random.choice(chars) for x in range(segment_len)) for y in range(segments)]
         return sep.join(parts)
 
-
     def _get_provider_uuid(self):
-        """ Finds the UUID for the Service Provider whose name is ```provider```
-
-        @type db: L{DbSnooper}
-        @type provider: string
+        """ Finds the UUID for the Service Provider
         """
         self._db.query = CouponsManager.PROVIDER_QUERY
         self._db.params = {'provider': self.provider}
@@ -218,11 +225,8 @@ class CouponsManager(object):
     def _get_target_cloud_info(self):
         """ Collects information about a given cloud target
 
-            @type db: L{DbSnooper}
-            @type cloud: string
-
-            @return: a t-uple with (uuid, url) for the target cloud, if found
-            @rtype: tuple or None
+            @return: a dict with (uuid, url, name, type) for the target cloud, if found
+            @rtype: dict or None
         """
         self._db.query = CouponsManager.CLOUD_QUERY
         self._db.params = {
@@ -234,22 +238,41 @@ class CouponsManager(object):
             info = res['results'][0]
             return info
 
+    def _get_user_id(self, email):
+        """ Looks up the user by email
+
+            @return: the UUID of the user
+            @rtype: string
+        """
+        self._db.query = CouponsManager.USER_QUERY
+        self._db.params = {
+            'email': email
+        }
+        res = self._db.execute()
+        if res['rowcount'] > 0:
+            return res['results'][0]['uuid']
+
     def make_coupons(self, count, filename=None):
         """ Creates ```count`` coupons, saving them to db, and optionally storing them to a CSV
         file
 
         """
-        if not self.provider or not self.cloud_target:
+        if not self.provider or not self.cloud_target or not self.created_by:
             raise RuntimeError(
-                'To generate coupons, must specifiy the name of the Service Provider '
-                'and the Cloud Target - see: '
-                'https://github.com/RiverMeadow/encloud/blob/develop/docs/coupons.rst')
+                '''To generate coupons, you must specifiy the name of the Service Provider,
+                   the Cloud Target and the user that creates this promotion codes.
+                   For more info run: snooper --help or see
+                     https://github.com/RiverMeadow/encloud/blob/develop/docs/coupons.rst''')
+        user_id = self._get_user_id(self.created_by)
+        if not user_id:
+            raise RuntimeError('User %s could not be found in the system' % (self.created_by,))
         coupon_values = {
             'count': 1,
-            'valid': True
+            'valid': True,
+            'created_by': user_id
         }
-        print 'Generating %d Promotion Codes' % (count,)
-
+        print 'Generating %d Promotion Codes for %s [%s]' % (count, self.provider,
+                                                             self.cloud_target)
         provider_uuid = self._get_provider_uuid()
         if not provider_uuid:
             raise RuntimeError("Could not find the ID for provider %s" % (self.provider,))
@@ -284,12 +307,22 @@ class CouponsManager(object):
 
         if filename:
             with open(filename, 'w') as coupon_list:
-                coupon_list.writelines(['# RiverMeadow Software, Inc. - created ',
-                                        datetime.datetime.now().isoformat(),
-                                        '\n#\n# For Service Provider: %s [%s]\n' % (self.provider,
-                                                                                    provider_uuid),
-                                        '# Cloud Target: %s\n' % (self.cloud_target,),
-                                        '# This file contains %d promotion codes\n\n' % (count,)])
+                metadata = {
+                    'when': datetime.datetime.now().isoformat(),
+                    'provider': self.provider,
+                    'provider_uuid': provider_uuid,
+                    'cloud_target': self.cloud_target,
+                    'count': count,
+                    'created_by': self.created_by
+                }
+                coupon_list.writelines(
+                    '# RiverMeadow Software, Inc. - created %(when)s\n'
+                    '#\n'
+                    '# For Service Provider: %(provider)s [%(provider_uuid)s]\n'
+                    '# Cloud Target: %(cloud_target)s\n'
+                    '# Created by: %(created_by)s\n'
+                    '#\n'
+                    '# This file contains %(count)d promotion codes\n\n' % metadata)
                 for code in codes:
                     coupon_list.writelines([code, '\n'])
             print 'Saved the list of codes to %s' % (filename,)
@@ -333,6 +366,10 @@ def parse_args():
                                         'field, when one will be created')
     parser.add_argument('--cloud-type', help='Optional, will be used if the Cloud Target does not'
                                              ' exist, as its "type" when it will be created')
+    parser.add_argument('--created-by',
+                        help='The system user that will be responsible for generating the '
+                             'entitlements associated with these promotion codes: it MUST be a '
+                             'valid user in the system')
     parser.add_argument('query_params', metavar='param', nargs='*', help='positional parameters '
                                                                          'for the query')
     return parser.parse_args()
@@ -403,7 +440,11 @@ def run_query():
     """
     conf = parse_args()
     if conf.coupons:
-        mgr = CouponsManager(conf)
+        mgr = CouponsManager(conf.provider,
+                             conf.cloud,
+                             conf.cloud_type,
+                             conf.created_by,
+                             conf=conf)
         codes = mgr.make_coupons(conf.coupons, conf.out)
         if not conf.out:
             return codes

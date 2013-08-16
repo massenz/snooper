@@ -3,6 +3,7 @@
 # Copyright (c) 2013 RiverMeadow Software Inc. All rights reserved.
 
 
+
 __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
 
 """
@@ -16,8 +17,9 @@ __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
 
 
 import flask
-from flask import Flask, abort, redirect, session, render_template
+from flask import Flask, abort, redirect, session, render_template, send_file
 from flask.ext import restful
+from flask.ext.restful import reqparse
 import json
 import logging
 import snooper
@@ -86,6 +88,24 @@ class SnooperResources(object):
         QueryResource._logger = logger
         api.add_resource(QueryResource, '/'.join([REST_BASE_URL, '<query>', '<path:args>']),
                          '/'.join([REST_BASE_URL, '<query>']))
+        api.add_resource(PromotionCodesResource, '/'.join(['', 'codes',
+                                                           '<int:count>']))
+
+
+class PromotionCodesResource(RestResource):
+    def post(self, count):
+        parser = reqparse.RequestParser()
+        parser.add_argument('cloud', location='json')
+        parser.add_argument('provider', location='json')
+        parser.add_argument('cloud_type', location='json')
+        parser.add_argument('created_by', location='json')
+        args = parser.parse_args()
+        mgr = snooper.CouponsManager(args['provider'],
+                             args['cloud'],
+                             args['cloud_type'],
+                             args['created_by'], db=db_conn)
+        codes = mgr.make_coupons(count, filename='/tmp/coupons.csv')
+        return send_file('/tmp/coupons.csv', as_attachment=True)
 
 
 def get_db():
