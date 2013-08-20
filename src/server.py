@@ -80,25 +80,21 @@ class SnooperResources(object):
             @param api: the Flask REST object to add routes to
             @type api: L{restful.Api}
         """
-        # TODO: this is ugly, there MUST be a better way!
-        QueryAllResource._conf = conf
-        QueryAllResource._logger = logger
+        RestResource._conf = conf
+        RestResource._logger = logger
+
         api.add_resource(QueryAllResource, REST_BASE_URL)
-        QueryResource._conf = conf
-        QueryResource._logger = logger
         api.add_resource(QueryResource, '/'.join([REST_BASE_URL, '<query>', '<path:args>']),
                          '/'.join([REST_BASE_URL, '<query>']))
-        api.add_resource(PromotionCodesResource, '/'.join(['', 'codes',
-                                                           '<int:count>']))
+        api.add_resource(PromotionCodesResource, '/'.join(['', 'codes', '<int:count>']))
 
 
 class PromotionCodesResource(RestResource):
     REQUEST_ARGS = ['cloud', 'provider', 'cloud_type', 'created_by']
-    
+
     def __init__(self):
         parser = reqparse.RequestParser()
         for arg in PromotionCodesResource.REQUEST_ARGS:
-            parser.add_argument(arg, location='json')
             parser.add_argument(arg, location='form')
         self._parser = parser
 
@@ -122,7 +118,8 @@ class PromotionCodesResource(RestResource):
         try:
             mgr.make_coupons(count, filename=filename)
             return send_file(filename, as_attachment=True)
-        except RuntimeError:
+        except RuntimeError as e:
+            self._logger.error(e.message)
             abort(500)
 
 
