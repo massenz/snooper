@@ -93,16 +93,27 @@ class SnooperResources(object):
 
 
 class PromotionCodesResource(RestResource):
+    REQUEST_ARGS = ['cloud', 'provider', 'cloud_type', 'created_by']
+    
     def __init__(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('cloud', location='json', required=True)
-        parser.add_argument('provider', location='json', required=True)
-        parser.add_argument('cloud_type', location='json', required=True)
-        parser.add_argument('created_by', location='json', required=True)
+        for arg in PromotionCodesResource.REQUEST_ARGS:
+            parser.add_argument(arg, location='json')
+            parser.add_argument(arg, location='form')
         self._parser = parser
+
+    def _check_args_exist_in_request(self, args):
+        for required in PromotionCodesResource.REQUEST_ARGS:
+            if not required in args:
+                self._logger.error("Argument %s not found in the request arguments" % (required,))
+                return False
+        return True
 
     def post(self, count):
         args = self._parser.parse_args()
+        if not self._check_args_exist_in_request(args):
+            self._logger.error("All required args should be passed in the request")
+            abort(406)
         mgr = snooper.CouponsManager(args['provider'],
                                      args['cloud'],
                                      args['cloud_type'],

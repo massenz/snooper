@@ -186,17 +186,14 @@ class CouponsManager(object):
     def __init__(self, provider, cloud, cloud_type, created_by, db=None, conf=None):
         """ Initializes a Coupons Manager
 
-            The argument is a dict-like configuration object that defines the provider and cloud
-            target, along with a set of connection configurations for the database.
-
-            At a minimum, ```conf``` will have the following keys:
-
-                'provider'  the name of the service provider
-                'cloud'     the name of the target cloud
-                'cloud_type' the type of cloud (eg, VCLOUD)
-                'created_by' the user that will be responsible for coupon creation
-
-            See ```config_connnection()``` for details about the connection configuration.
+            @param provider:  the name of the service provider
+            @param cloud: the name of the target cloud
+            @param cloud_type: the type of cloud (eg, VCLOUD)
+            @param created_by: the user that will be responsible for coupon creation
+            @param conf: a dict-like configuration object that defines the connection
+                    configurations for the database.
+                    See ```config_connnection()``` for details about the connection configuration.
+            @type conf: dict
 
             @param db: a connection to a postgresql instance, if None, it will try to create a
                 new one using connection configuration parameters from ```conf```
