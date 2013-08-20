@@ -1,1 +1,62 @@
-HELLO WORLD
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Coupon Generator</title>
+    <link rel="icon" type="image/png" href="./img/favicon.ico">
+    <link rel="stylesheet" href="./css/bootstrap.min.css">
+    <link rel="stylesheet" href="./css/font-awesome.min.css">
+    <link rel="stylesheet" href="./css/marketing.css">
+</head>
+<body>
+
+
+<div id="user_info_modal" class="modal" tabindex="-1" role="dialog" aria-labelledby="user_info_modal" aria-hidden="false">
+    <div class="modal-header"></div>
+    <div class="modal-body">
+        <form class="form-horizontal" id="coupon_form" action="">
+            <div class="control-group">
+                <label class="control-label" for="count">Coupon Count</label>
+                <div class="controls">
+                    <input type="text" id="count" required="required" placeholder="# coupons to create"/>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="cloud">Target Cloud Name</label>
+                <div class="controls">
+                    <input type="text" id="cloud" required="required" />
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="provider">Provider</label>
+                <div class="controls">
+                    <input type="text" id="provider" required="required" />
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="cloud_type">Cloud Type</label>
+                <div class="controls">
+                    <input type="text" id="cloud_type" required="required" value="VCLOUD" class="uneditable-input" />
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="created_by">Created By</label>
+                <div class="controls">
+                    <input type="text" id="created_by" required="required" />
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <p>
+            &nbsp;
+        </p>
+        <button class="btn btn-primary btn-large disabled" type="submit" id="btnSubmit">Submit Your Info</button>
+    </div>
+</div>
+<script type="text/javascript" src="./js/jquery-2.0.0.min.js"></script>
+<script type="text/javascript" src="./js/bootstrap.min.js"></script>
+<script type="text/javascript" src="./js/coupon_main.js"></script>
+<script type="text/javascript" src="./js/coupon.js"></script>
+<script type="text/javascript" src="./js/form2js.js"></script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+.modal-backdrop,
+.modal-backdrop.fade.in {
+    opacity: 0.6;
+    filter: alpha(opacity=60);
+}
+
+.modal, .modal.fade.in {
+    top: 10%;
+}
+
+.modal {
+    background-color: transparent;
+}
+
+.modal .modal-header {
+    background: #282d36 url(../img/rm_logo_header.png) no-repeat 50px 50%;
+    height: 50px;
+    border-bottom: none;
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+}
+
+.modal .modal-body {
+    background-color: #3b414d;
+    padding: 15px 50px;
+    max-height:600px;
+}
+
+.modal form h6 {
+    font-size: 24px;
+    color: #d8d9db;
+    font-weight: normal;
+    line-height: 1.5;
+    padding-bottom: .3em;
+}
+
+.modal .control-label, .modal .section-header {
+    color: #d8d9db;
+    font-size:16px;
+}
+
+.modal .section-header {
+    border-bottom:1px solid #d8d9db;
+    margin-top:20px;
+    margin-bottom:10px;
+    font-size:12px;
+    font-weight: bold;
+}
+
+.modal .form-horizontal .control-group {
+    margin-bottom: 10px;
+}
+
+.modal .form-horizontal .control-group:last-child {
+    margin-bottom: 0;
+}
+
+.modal .form-horizontal .controls {
+    margin-left: 180px;
+}
+
+.modal .form-horizontal select, .modal .form-horizontal textarea, .modal .form-horizontal input[type="text"], .modal .form-horizontal input[type="password"], .modal .form-horizontal input[type="datetime"], .modal .form-horizontal input[type="datetime-local"], .modal .form-horizontal input[type="date"], .modal .form-horizontal input[type="month"], .modal .form-horizontal input[type="time"], .modal .form-horizontal input[type="week"], .modal .form-horizontal input[type="number"], .modal .form-horizontal input[type="email"], .modal .form-horizontal input[type="url"], .modal .form-horizontal input[type="search"], .modal .form-horizontal input[type="tel"], .modal .form-horizontal input[type="color"], .modal .form-horizontal .uneditable-input, .super-hero .span_inner .controls select, .super-hero .span_inner .controls textarea, .super-hero .span_inner .controls input[type="text"], .super-hero .span_inner .controls input[type="password"], .super-hero .span_inner .controls input[type="datetime"], .super-hero .span_inner .controls input[type="datetime-local"], .super-hero .span_inner .controls input[type="date"], .super-hero .span_inner .controls input[type="month"], .super-hero .span_inner .controls input[type="time"], .super-hero .span_inner .controls input[type="week"], .super-hero .span_inner .controls input[type="number"], .super-hero .span_inner .controls input[type="email"], .super-hero .span_inner .controls input[type="url"], .super-hero .span_inner .controls input[type="search"], .super-hero .span_inner .controls input[type="tel"], .super-hero .span_inner .controls input[type="color"], .super-hero .span_inner .controls .uneditable-input {
+    /*
+        width: 438px;
+    */
+    font-size: 14px;
+    /*    padding: 12px 10px 10px 10px;*/
+}
+
+.modal .form-horizontal ::-webkit-input-placeholder {
+    font-weight: normal;
+    font-family: "Myriad Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    padding-top: 2px;
+}
+.modal .form-horizontal :-moz-placeholder {
+    font-weight: normal;
+    font-family: "Myriad Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    padding-top: 2px;
+}
+.modal .form-horizontal ::-moz-placeholder {
+    font-weight: normal;
+    font-family: "Myriad Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    padding-top: 2px;
+}
+.modal .form-horizontal :-ms-input-placeholder {
+    font-weight: normal;
+    font-family: "Myriad Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    padding-top: 2px;
+}
+
+.modal .form-horizontal .checkbox_holder {
+    display: block;
+    background-color: #fff;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    padding: 10px;
+    height: 40px;
+}
+
+.modal .form-horizontal .checkbox_holder.active {
+    background-color: #ebf5ff;
+}
+
+.modal .form-horizontal .checkbox_holder input {
+    float: left;
+    margin-top: 15px;
+}
+
+.modal .form-horizontal .checkbox_holder p {
+    float: right;
+    text-align: right;
+}
+
+.modal .form-horizontal .checkbox_holder p:last-child {
+    float: none;
+    text-align: left;
+    margin: 0 1em 0 2em;
+    position: absolute;
+}
+
+.modal .modal-footer {
+    background-color: #282d36;
+    border-top: none;
+    margin-top: -1px;
+    padding: 25px 50px 15px 50px;
+    border-bottom-left-radius: inherit;
+    border-bottom-right-radius: inherit;
+}
+
+.modal .modal-footer p {
+    float: left;
+    width: 50%;
+    color: #ddd;
+    text-align: left;
+    font-size: 90%;
+    font-style: italic;
+}
+
+.modal .modal-footer p a {
+    color: #95a3b0;
+    text-decoration: underline;
+}
+
+.modal .modal-footer p a:hover {
+    color: #5294c1;
+}
+
+.alert_wrapper {
+    position: fixed;
+    z-index: 2050;
+    width: 100%;
+    top: 5%;
+    left: 0;
+    text-align: center;
+}
+
+.alert_wrapper_inner {
+    margin: 0 auto;
+    width: 562px;
+}
+
+.alert-inner strong {
+    padding-right: 1em;
+}
+
+.alert {
+    text-align: left;
+}
+
+.alert-danger, .alert-error {
+    background-color: #ea2121;
+    border-color: #ea2121;
+    color: #fff;
+}
+.alert-danger h4, .alert-error h4 {
+    color: #fff;
+}
