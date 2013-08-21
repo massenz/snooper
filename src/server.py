@@ -73,22 +73,6 @@ class QueryResource(RestResource):
         return res
 
 
-class SnooperResources(object):
-    def __init__(self, api, conf, logger):
-        """ Sets up the routes for the REST API.
-
-            @param api: the Flask REST object to add routes to
-            @type api: L{restful.Api}
-        """
-        RestResource._conf = conf
-        RestResource._logger = logger
-
-        api.add_resource(QueryAllResource, REST_BASE_URL)
-        api.add_resource(QueryResource, '/'.join([REST_BASE_URL, '<query>', '<path:args>']),
-                         '/'.join([REST_BASE_URL, '<query>']))
-        api.add_resource(PromotionCodesResource, '/'.join(['', 'codes', '<int:count>']))
-
-
 class PromotionCodesResource(RestResource):
     REQUEST_ARGS = ['cloud', 'provider', 'cloud_type', 'created_by']
 
@@ -110,12 +94,12 @@ class PromotionCodesResource(RestResource):
         if not self._check_args_exist_in_request(args):
             self._logger.error("All required args should be passed in the request")
             abort(406)
-        mgr = snooper.CouponsManager(args['provider'],
-                                     args['cloud'],
-                                     args['cloud_type'],
-                                     args['created_by'], db=db_conn)
-        filename = '/tmp/coupons.csv'
         try:
+            mgr = snooper.CouponsManager(args['provider'],
+                                         args['cloud'],
+                                         args['cloud_type'],
+                                         args['created_by'], db=db_conn)
+            filename = '/tmp/coupons.csv'
             mgr.make_coupons(count, filename=filename)
             return send_file(filename, as_attachment=True)
         except RuntimeError as e:
@@ -134,23 +118,38 @@ def get_db():
 db_conn = LocalProxy(get_db)
 
 
+def build_routes(api, conf, logger):
+    """ Sets up the routes for the REST API.
+
+        @param api: the Flask REST object to add routes to
+        @type api: L{restful.Api}
+    """
+    RestResource._conf = conf
+    RestResource._logger = logger
+
+    api.add_resource(QueryAllResource, REST_BASE_URL)
+    api.add_resource(QueryResource, '/'.join([REST_BASE_URL, '<query>', '<path:args>']),
+                     '/'.join([REST_BASE_URL, '<query>']))
+    api.add_resource(PromotionCodesResource, '/'.join(['', 'codes', '<int:count>']))
+
+
 def run_server():
     """ The main server app, starts up Flask, sets up the routes and handles requests
     """
-    app = Flask('snooper')
-    api = restful.Api(app)
     conf = snooper.parse_args()
-
-    @app.errorhandler(404)
-    def redirect_to_UI(error):
-        return render_template('index.html')
-
+    app = Flask('snooper')
     if not conf.debug:
         # By default, in non-debug mode, the app logger does not log anything
         # we enable it here to log DEBUG level to Console
         app.logger.setLevel(logging.DEBUG)
         app.logger.addHandler(logging.StreamHandler())
-    routes = SnooperResources(api, conf, app.logger)
+    api = restful.Api(app)
+    build_routes(api, conf, app.logger)
+
+    @app.errorhandler(404)
+    def redirect_to_UI(error):
+        return render_template('index.html')
+
     app.run(debug=conf.debug, host='0.0.0.0')
 
 if __name__ == '__main__':

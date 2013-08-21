@@ -413,8 +413,8 @@ def config_connection(conf):
      parameters.
 
      The passed in L{ArgumentParser} configuration object, must contain at a minimum the
-     following fields: {``host``, ``conf``}, the configuration file (whose name is stored in the
-     ``conf`` field) will have further to have the following values defined: 'db',
+     following fields: {``host``, ``conf``, ``env``}; the configuration file (whose name is
+     stored in the ``conf`` field) will have to further have the following values defined: 'db',
      'user' and 'password' for the DB connection.
 
      @return: a configuration dictionary that can be used to construct a L{DbSnooper} object
