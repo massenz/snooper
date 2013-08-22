@@ -15,7 +15,6 @@ __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
     See README.rst for more info about the API and the general functionality.
 """
 
-
 import flask
 from flask import Flask, abort, redirect, session, send_file, make_response
 from flask.ext import restful
@@ -61,7 +60,12 @@ class QueryResource(RestResource):
             return res
         else:
             self._logger.error('Could not find query %s', query)
-            abort(404)
+            return {
+                "error": {"err_title": 'Query Not Found',
+                          "err_msg": 'Could not find query {} in the given query '
+                                     'JSON file [{}]'.format(query, self._conf.queries)
+                }
+            }
 
     def run_query(self, query, params=None):
         db_conn.query = query
@@ -85,15 +89,18 @@ class PromotionCodesResource(RestResource):
     def _check_args_exist_in_request(self, args):
         for required in PromotionCodesResource.REQUEST_ARGS:
             if not required in args:
-                self._logger.error("Argument %s not found in the request arguments" % (required,))
+                self._logger.error("Argument {} not found in the request arguments".format(required,))
                 return False
         return True
 
     def post(self, count):
         args = self._parser.parse_args()
         if not self._check_args_exist_in_request(args):
-            self._logger.error("All required args should be passed in the request")
-            abort(406)
+            self._logger.error("All required args should be passed in the request, "
+                               "found: {}".format(args))
+            return render_error('Missing Argument',
+                                'All required args [{}] should be passed in the request, '
+                                'only {} found'.format(PromotionCodesResource.REQUEST_ARGS, args))
         try:
             mgr = snooper.CouponsManager(args['provider'],
                                          args['cloud'],
@@ -104,7 +111,13 @@ class PromotionCodesResource(RestResource):
             return send_file(filename, as_attachment=True)
         except Exception as e:
             self._logger.error(e.message)
-            return render_template('err_msg.html', title="Error creating codes", message=e.message)
+            return render_error("Error creating codes", e.message)
+
+
+def render_error(title, message):
+    """ Helper method to just render an error page
+    """
+    return render_template('err_msg.html', title=title, message=message)
 
 
 def render_template(template, **kwargs):
@@ -119,12 +132,21 @@ def render_template(template, **kwargs):
 
 
 def get_db():
+    """ Connects to the database
+
+        Helper method, creates the connection the first time, then caches it in Flask's ```g```
+
+        @return: a DB connection, newly created if necessary
+        @rtype: L{DbSnooper}
+    """
     db = getattr(flask.g, '_database', None)
     if not db:
         conf = snooper.parse_args()
+        flask.current_app._logger.info("Opening connection to DB: {}".format(conf))
         db = snooper.DbSnooper(conf=snooper.config_connection(conf))
         flask.g._database = db
     return db
+
 
 db_conn = LocalProxy(get_db)
 
@@ -159,16 +181,16 @@ def run_server():
 
     @app.errorhandler(404)
     def redirect_to_UI(error):
-        print '--- Not found: ', error
+        app._logger.error('--- Not found: {}'.format(error))
         return render_template('index.html')
 
-    # @app.errorhandler(500)
-    # def handle_ex(error):
-    #     print '>>>>> Error: ', error
-    #     app._logger.error(error)
-    #     return render_template('err_msg.html')
+    @app.errorhandler(500)
+    def handle_ex(error):
+        app._logger.error(error)
+        return render_error('Application Error', error)
 
     app.run(debug=conf.debug, host='0.0.0.0')
+
 
 if __name__ == '__main__':
     run_server()

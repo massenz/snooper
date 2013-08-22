@@ -13,7 +13,7 @@
 }
 
 .modal .modal-header {
-    background: #282d36 url(../img/rm_logo_header.png) no-repeat 50px 50%;
+    background: #282d36 url(/static/img/rm_logo_header.png) no-repeat 50px 50%;
     height: 50px;
     border-bottom: none;
     border-top-left-radius: inherit;
