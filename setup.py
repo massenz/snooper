@@ -8,7 +8,7 @@ import re
 import setuptools
 
 
-VERSION = '0.11'
+VERSION = '0.12'
 
 
 def get_data_files(source_dest_pairs):
