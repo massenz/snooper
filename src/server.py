@@ -17,7 +17,7 @@ __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
 
 
 import flask
-from flask import Flask, abort, redirect, session, render_template, send_file
+from flask import Flask, abort, redirect, session, send_file, make_response
 from flask.ext import restful
 from flask.ext.restful import reqparse
 import json
@@ -102,9 +102,20 @@ class PromotionCodesResource(RestResource):
             filename = '/tmp/coupons.csv'
             mgr.make_coupons(count, filename=filename)
             return send_file(filename, as_attachment=True)
-        except RuntimeError as e:
+        except Exception as e:
             self._logger.error(e.message)
-            abort(500)
+            return render_template('err_msg.html', title="Error creating codes", message=e.message)
+
+
+def render_template(template, **kwargs):
+    """ Helper method to return the given template
+
+        This is needed due to the nefarious conflict between assumed defaults in Flask RESTful and
+        Flask itselfl.
+    """
+    response = make_response(flask.render_template(template, **kwargs))
+    response.headers["Content-type"] = "text/html"
+    return response
 
 
 def get_db():
@@ -148,7 +159,14 @@ def run_server():
 
     @app.errorhandler(404)
     def redirect_to_UI(error):
+        print '--- Not found: ', error
         return render_template('index.html')
+
+    # @app.errorhandler(500)
+    # def handle_ex(error):
+    #     print '>>>>> Error: ', error
+    #     app._logger.error(error)
+    #     return render_template('err_msg.html')
 
     app.run(debug=conf.debug, host='0.0.0.0')
 
