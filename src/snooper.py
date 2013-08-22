@@ -15,6 +15,9 @@ import string
 import sys
 import uuid
 
+DEFAULT_PORT = 5432
+""" Default Postgresql listening port"""
+
 
 class DbSnooper(object):
     """ This class enables execution of arbitrary queries against a given DB
@@ -31,7 +34,7 @@ class DbSnooper(object):
             user - user name used to authenticate
             password - password used to authenticate
             host - database host address (defaults to UNIX socket if not provided)
-            port - connection port number (defaults to 5432 if not provided)
+            port - connection port number (defaults to ```DEFAULT_PORT``` if not provided)
 
             @param conf: contains the host, port, db, user, etc to connect to the DB
             @see http://www.initd.org/psycopg/docs/module.html
@@ -42,7 +45,7 @@ class DbSnooper(object):
             @param query: the SQL query to execute, optionally with named arguments
             @type query: string
         """
-        port = int(conf.get('port')) if conf.get('port') else None
+        port = int(conf.get('port', DEFAULT_PORT))
         try:
             self._conn = psycopg2.connect(database=conf['db'],
                                           user=conf.get('user'),
@@ -413,16 +416,25 @@ def config_connection(conf):
      parameters.
 
      The passed in L{ArgumentParser} configuration object, must contain at a minimum the
-     following fields: {``host``, ``conf``, ``env``}; the configuration file (whose name is
-     stored in the ``conf`` field) will have to further have the following values defined: 'db',
-     'user' and 'password' for the DB connection.
+     following attributes:
+
+        ``conf``    the configuration file name
+        ``env``     the section in the config file to use ("environment")
+
+     The "environment"  will have have the following values defined: 'db',
+     'user' and 'password' for the DB connection (and, optionally, 'host' - however,
+     the hostname passed in at the CLI [--host] will take precedence, if provided).
 
      @return: a configuration dictionary that can be used to construct a L{DbSnooper} object
      @rtype: dict
     """
-    config = ConfigParser.ConfigParser()
+    config = ConfigParser.ConfigParser({'port': DEFAULT_PORT,
+                                        'host': conf.host,
+                                        'user': None,
+                                        'password': ''})
     config.read(conf.conf)
-    res = {'host': conf.host,
+    res = {'host': config.get(conf.env, 'host'),
+           'port': config.get(conf.env, 'port', raw=True),
            'db': config.get(conf.env, 'db'),
            'user': config.get(conf.env, 'user'),
            'password': config.get(conf.env, 'password')
