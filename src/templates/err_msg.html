@@ -12,11 +12,12 @@
 
 <div id="user_info_modal" class="modal" tabindex="-1" role="dialog" aria-labelledby="user_info_modal" aria-hidden="false">
     <div class="modal-header">
-        <div id="err_title" class="text-error">{{ title }}</div>
+        <div id="err_title" class="err_title">{{ title }}</div>
     </div>
     <div class="modal-body">
-        <div id='err_msg' class="text-error">{{ message }}</div>
+        <div id='err_msg'>{{ message }}</div>
     </div>
+    <div class="modal-footer err_footer">&nbsp;</div>
 </div>
 <script type="text/javascript" src="../static/js/jquery-2.0.0.min.js"></script>
 <script type="text/javascript" src="../static/js/bootstrap.min.js"></script>
