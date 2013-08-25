@@ -4,11 +4,9 @@ __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
 
 
 import os
-import re
 import setuptools
 
-
-VERSION = '0.12'
+import snooper
 
 
 def get_data_files(source_dest_pairs):
@@ -28,7 +26,6 @@ def get_data_files(source_dest_pairs):
             for file_ in files:
                 dir_files.append(os.path.join(src_root, file_))
             data_files.append((dest_root, dir_files))
-    print '****', data_files
     return data_files
 
 
@@ -46,7 +43,7 @@ def to_EGG(dir):
 
 setuptools.setup(
     name='snooper',
-    version=VERSION,
+    version=snooper.VERSION,
     package_dir={'': 'src'},
     packages=setuptools.find_packages('src', exclude=['*.test']),
     zip_safe=False,

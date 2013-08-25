@@ -15,6 +15,7 @@ import string
 import sys
 import uuid
 
+VERSION = '0.13'
 DEFAULT_PORT = 5432
 """ Default Postgresql listening port"""
 
@@ -335,6 +336,8 @@ def parse_args():
     @return: a configuration dict
     """
     parser = argparse.ArgumentParser(description='SQL command line execution tool')
+    parser.add_argument('--version', '-v', action='store_true', help='Prints the version and '
+                                                                     'exits')
     parser.add_argument('--queries',
                         help='an optional input file (JSON) defining a set of SQL queries')
     parser.add_argument('--out', help='an optional output file')
@@ -355,7 +358,7 @@ def parse_args():
                         help='If set, the server will be run in debug mode: do NOT use in '
                              'production')
     parser.add_argument('--conf', help='The location of the configuration file which contains the'
-                                       ' connection parameters', required=True)
+                                       ' connection parameters')
     parser.add_argument('--coupons', type=int,
                         help='This will generate the requested number of coupons, '
                              'insert in the database and return in the --out file the list of '
@@ -448,6 +451,12 @@ def run_query():
         @return: the query result or None, if the output is sent to a file
     """
     conf = parse_args()
+    if conf.version:
+        print 'snooper - SQL navigation engine :: Ver. {}'.format(VERSION)
+        exit(0)
+    if not conf.conf:
+        print 'The --conf argument is required and must point to an existing configuration file'
+        exit(1)
     if conf.coupons:
         mgr = CouponsManager(conf.provider,
                              conf.cloud,
