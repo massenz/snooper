@@ -15,7 +15,7 @@ import string
 import sys
 import uuid
 
-VERSION = '0.13'
+VERSION = '0.14'
 DEFAULT_PORT = 5432
 """ Default Postgresql listening port"""
 
