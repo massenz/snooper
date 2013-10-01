@@ -15,9 +15,12 @@ import string
 import sys
 import uuid
 
+
+#: Snooper release no.
 VERSION = '0.14'
+
+#: Default Postgresql listening port
 DEFAULT_PORT = 5432
-""" Default Postgresql listening port"""
 
 
 class DbSnooper(object):

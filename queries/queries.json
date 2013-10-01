@@ -164,6 +164,21 @@
                 "User": "/api/1/query/get_user_by_email/email/$",
                 "host": "/api/1/query/get_source_by_ip_1.15/ip/$"
             }
+        },
+        "get_used_promotions": {
+            "sql": "SELECT entitlements.user_email_address \"User\", entitlements.uuid \"Entitlement ID\" from promotion_codes, entitlements WHERE promotion_codes.entitlement_ref IS NOT NULL AND promotion_codes.entitlement_ref = entitlements.uuid",
+            "params": [],
+            "drill_down": {
+                "User": "/api/1/query/get_user_by_email/email/$",
+                "Entitlement ID": "/api/1/query/get_ents/id/$",
+            }
+        },
+        "get_ents": {
+            "sql": "SELECT * from entitlements WHERE entitlements.uuid = %(id)s",
+            "params": [{
+                "label": "Entitlement ID",
+                "name": "id"
+                }]
         }
     }
 }
