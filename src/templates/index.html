@@ -43,32 +43,33 @@
                     <div class="control-group">
                         <label class="control-label" for="queryName">Query Name</label>
                         <div class="controls">
-                            <input type="text" id="queryName" />
+                            <input type="text" id="queryName" class="input-xxlarge" />
                         </div>
                     </div>
                     <div class="control-group">
                         <label class="control-label" for="querySql">SQL</label>
                         <div class="controls">
-                            <textarea rows="3" id="querySql"></textarea>
+                            <textarea rows="7" id="querySql" class="input-xxlarge"></textarea>
+                            <span class="help-inline">In your SQL query, wrap each parameter's name in %(name)s, making sure the name matches, including capitalization, without spaces and _ allowed, eg: user_name -> %(user_name)s)</span>
                         </div>
                     </div>
                     <div class="control-group">
                         <label class="control-label" for="queryParams">Parameters</label>
                         <div class="controls">
-                            <input type="text" class="input-small" id="param_label0" placeholder="Label" />
-                            <input type="text" class="input-small" id="param_name0" placeholder="Name" />
+                            <input type="text" id="param_label0" placeholder="Label" />
+                            <input type="text" id="param_name0" placeholder="Name" />
                         </div>
                     </div>
                     <div class="control-group">
                         <div class="controls">
-                            <input type="text" class="input-small" id="param_label1" placeholder="Label" />
-                            <input type="text" class="input-small" id="param_name1" placeholder="Name" />
+                            <input type="text" id="param_label1" placeholder="Label" />
+                            <input type="text" id="param_name1" placeholder="Name" />
                         </div>
                     </div>
                     <div class="control-group">
                         <div class="controls">
-                            <input type="text" class="input-small" id="param_label2" placeholder="Label" />
-                            <input type="text" class="input-small" id="param_name2" placeholder="Name" />
+                            <input type="text" id="param_label2" placeholder="Label" />
+                            <input type="text" id="param_name2" placeholder="Name" />
                         </div>
                     </div>
                 </form>

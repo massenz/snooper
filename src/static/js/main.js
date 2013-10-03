@@ -86,9 +86,7 @@ var showData = function(rawData, dataUrl) {
         $("#submit_query_cancel").mousedown(function(event) {
             $("#create_query_form input, #create_query_form textarea").val("");
         });
-
-
-        $("#reporting_display thead").append('<tr><th>Query <i class="icon-sort-down"></i></th><th colspan="2">Parameters <i class="icon-sort-down"></i></th></tr>');
+        $("#reporting_display thead").append('<tr><th>Query <i class="icon-sort-down"></i></th><th colspan="2">Parameters <i class="icon-sort-down"></i></th><th></th></tr>');
         $("#reporting_display").addClass("js_sorTable");
         headersWritten = true;
         forEach(processedData, function(thisRow) {
@@ -100,9 +98,13 @@ var showData = function(rawData, dataUrl) {
                 forEach(thisData, function(thisParam, thisIterator) {
                     if (thisParam.hasOwnProperty("name") && thisParam.hasOwnProperty("label")) newRow += '<div class="controls"><input type="text" name="'+thisParam.name+'" placeholder="'+thisParam.label+'" /></div>';
                 });
-                newRow += '</td><td><a class="btn btn-primary js_executeQuery" href="'+thisKey+'">Execute Query</a></td>';
+                newRow += '</td><td><a class="btn btn-primary js_executeQuery" href="'+thisKey+'">Execute Query</a></td><td class="remove_query_holder"><a href="#" class="remove_query"><i class="icon-remove-sign icon-2x"></i></a></td>';
             });
-            $("#reporting_display tbody").append(newRow+'</tr>');
+            $("#reporting_display tbody").append(newRow+'</tr>').find("tr").last().attr({"data-queryObject":JSON.stringify(thisRow)});
+        });
+        $("a.remove_query").click(function(event) {
+           removeQuery(JSON.parse($(this).closest("tr").attr("data-queryObject")));
+           return false;
         });
     } else {
         if (processedData.length > 0) {
@@ -398,6 +400,22 @@ var CallBox = function() {
         $.ajax(that.baseUrl+nextCallInfo.url, callPayload);
     };
 };
+
+var removeQuery = function(queryObject) {
+    var newUrl = false;
+    forEach(queryObject, function(objectValue, objectKey) {
+        newUrl = objectKey;
+    });
+    apiCaller.doCall({
+        url : "/"+newUrl,
+        settings : {
+            type : "DELETE",
+            success : function(data, textStatus, jqXHR) {
+                location.reload(true);
+            }
+        }
+    });
+}
 
 /** Utility Functions. */
 /**

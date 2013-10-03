@@ -14,6 +14,17 @@ body {
 #create_query {
     margin-bottom: 20px;
 }
+.remove_query_holder {
+    max-width: 50px;
+}
+a.remove_query {
+    text-decoration: none;
+    color: red;
+}
+.modal {
+    width: 900px;
+    margin-left: -450px;
+}
 .js_sorTable {
     font-size: smaller;
 }
