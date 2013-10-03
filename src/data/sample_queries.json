@@ -1,4 +1,5 @@
 {
+    "queries":{
     "awesome_query": {
         "drill_down": {
             "Migration ID": "/api/1/query/migrations_by_id_1.15/migration_id/$",
@@ -197,5 +198,6 @@
             "Task ID": "/api/1/query/migrations_by_id_1.15/migration_id/$"
         },
         "sql": "select distinct sm.host, s.source_machine_ref, av.attribute_category_id, av.attribute_name, av.attribute_value_string, t.id \"Task ID\", t.status, DATE(t.execution_start) from attribute_value av, source_machine sm, attribute_collection ac, step s, task t where t.name like '%igrationTask%' and DATE(t.execution_start) > '2013-05-31' and s.task_id = t.id and s.source_machine_ref = sm.id and ac.host = sm.host and ac.id = av.attribute_collection_id and av.attribute_category_id = 7 and av.attribute_name like '%CPU Architecture%' and av.attribute_value_string like '%Windows%'"
+    }
     }
 }
