@@ -170,7 +170,7 @@
             "params": [],
             "drill_down": {
                 "User": "/api/1/query/get_user_by_email/email/$",
-                "Entitlement ID": "/api/1/query/get_ents/id/$",
+                "Entitlement ID": "/api/1/query/get_ents/id/$"
             }
         },
         "get_ents": {
