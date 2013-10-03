@@ -29,7 +29,7 @@ a.remove_query {
     position: fixed;
     z-index: 2050;
     width: 100%;
-    top: 5%;
+    top: 3%;
     left: 0;
     text-align: center;
 }

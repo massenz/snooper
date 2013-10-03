@@ -60,33 +60,59 @@ var showData = function(rawData, dataUrl) {
             return false;
         });
         $("#submit_query_create").click(function(event) {
-            var callPayload = {
-                "sql" : $("#querySql").val(),
-                "params" : []
-            };
-            for(var i=0; i<5; i++) {
-                var thisName = $("#param_name"+i).val();
-                var thisLabel = $("#param_label"+i).val();
-                if ((thisName !== "") && (thisLabel !== "")) {
-                    callPayload.params.push({"name":thisName, "label":thisLabel});
-                }
-            }
-            apiCaller.doCall({
-                url : "/"+makeSafeName($("#queryName").val().split(" ").join("_")),
-                settings : {
-                    type : "POST",
-                    processData : false,
-                    contentType : "application/json",
-                    data : JSON.stringify(callPayload),
-                    success : function(data, textStatus, jqXHR) {
-                        alertEngine.setAlert({
-                            alertBody : "Query Created!",
-                            alertClass : "success"
-                        });
-                        location.reload(true);
+            var doSubmit = true;
+            $('#create_query_form input[required="required"], #create_query_form textarea[required="required"]').each(function() {
+               $(this).unbind("click").click(function(event) {
+                   $(this).closest(".control-group").removeClass("error");
+               });
+               var isEmpty = (!$.trim($(this).val()) || ($.trim($(this).val()) === ""));
+               if (isEmpty) {
+                   doSubmit = false;
+                   $(this).closest(".control-group").addClass("error");
+               }
+            });
+            if (doSubmit) {
+                var callPayload = {
+                    "sql" : $("#querySql").val(),
+                    "params" : []
+                };
+                for(var i=0; i<5; i++) {
+                    var thisName = $("#param_name"+i).val();
+                    var thisLabel = $("#param_label"+i).val();
+                    if ((thisName !== "") && (thisLabel !== "")) {
+                        callPayload.params.push({"name":thisName, "label":thisLabel});
                     }
                 }
-            });
+                apiCaller.doCall({
+                    url : "/"+makeSafeName($("#queryName").val().split(" ").join("_")),
+                    settings : {
+                        type : "POST",
+                        processData : false,
+                        contentType : "application/json",
+                        data : JSON.stringify(callPayload),
+                        success : function(data, textStatus, jqXHR) {
+                            if (data.hasOwnProperty("error")) {
+                                alertEngine.showAlert({
+                                    alertTitle : data.error.title,
+                                    alertBody : data.error.message,
+                                    alertClass : "error"
+                                });
+                            } else {
+                                alertEngine.setAlert({
+                                    alertBody : "Query Created!",
+                                    alertClass : "success"
+                                });
+                                location.reload(true);
+                            }
+                        }
+                    }
+                });
+            } else {
+                alertEngine.showAlert({
+                    alertBody : "Please complete all required fields.",
+                    alertClass : "error"
+                });
+            }
         });
         $("#submit_query_cancel").mousedown(function(event) {
             $("#create_query_form input, #create_query_form textarea").val("");

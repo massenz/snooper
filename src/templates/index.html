@@ -43,13 +43,13 @@
                     <div class="control-group">
                         <label class="control-label" for="queryName">Query Name</label>
                         <div class="controls">
-                            <input type="text" id="queryName" class="input-xxlarge" />
+                            <input type="text" id="queryName" class="input-xxlarge" required="required" />
                         </div>
                     </div>
                     <div class="control-group">
                         <label class="control-label" for="querySql">SQL</label>
                         <div class="controls">
-                            <textarea rows="7" id="querySql" class="input-xxlarge"></textarea>
+                            <textarea rows="7" id="querySql" class="input-xxlarge" required="required"></textarea>
                             <span class="help-inline">In your SQL query, wrap each parameter's name in %(name)s, making sure the name matches, including capitalization, without spaces and _ allowed, eg: user_name -> %(user_name)s)</span>
                         </div>
                     </div>
