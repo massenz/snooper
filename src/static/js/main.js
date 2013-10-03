@@ -6,6 +6,7 @@ var pageReady = function() {
     urlEngine = new UrlBox();
     apiCaller = new CallBox();
     tableEngine = new TableBox();
+    alertEngine = new AlertBox();
 
     apiCaller.doCall({
         url : urlEngine.getUrlDirective(),
@@ -63,7 +64,7 @@ var showData = function(rawData, dataUrl) {
                 "sql" : $("#querySql").val(),
                 "params" : []
             };
-            for(var i=0; i<3; i++) {
+            for(var i=0; i<5; i++) {
                 var thisName = $("#param_name"+i).val();
                 var thisLabel = $("#param_label"+i).val();
                 if ((thisName !== "") && (thisLabel !== "")) {
@@ -78,6 +79,10 @@ var showData = function(rawData, dataUrl) {
                     contentType : "application/json",
                     data : JSON.stringify(callPayload),
                     success : function(data, textStatus, jqXHR) {
+                        alertEngine.setAlert({
+                            alertBody : "Query Created!",
+                            alertClass : "success"
+                        });
                         location.reload(true);
                     }
                 }
@@ -86,9 +91,7 @@ var showData = function(rawData, dataUrl) {
         $("#submit_query_cancel").mousedown(function(event) {
             $("#create_query_form input, #create_query_form textarea").val("");
         });
-
-
-        $("#reporting_display thead").append('<tr><th>Query <i class="icon-sort-down"></i></th><th colspan="2">Parameters <i class="icon-sort-down"></i></th></tr>');
+        $("#reporting_display thead").append('<tr><th>Query <i class="icon-sort-down"></i></th><th colspan="2">Parameters <i class="icon-sort-down"></i></th><th></th></tr>');
         $("#reporting_display").addClass("js_sorTable");
         headersWritten = true;
         forEach(processedData, function(thisRow) {
@@ -100,9 +103,13 @@ var showData = function(rawData, dataUrl) {
                 forEach(thisData, function(thisParam, thisIterator) {
                     if (thisParam.hasOwnProperty("name") && thisParam.hasOwnProperty("label")) newRow += '<div class="controls"><input type="text" name="'+thisParam.name+'" placeholder="'+thisParam.label+'" /></div>';
                 });
-                newRow += '</td><td><a class="btn btn-primary js_executeQuery" href="'+thisKey+'">Execute Query</a></td>';
+                newRow += '</td><td><a class="btn btn-primary js_executeQuery" href="'+thisKey+'">Execute Query</a></td><td class="remove_query_holder"><a href="#" class="remove_query"><i class="icon-remove-sign icon-2x"></i></a></td>';
             });
-            $("#reporting_display tbody").append(newRow+'</tr>');
+            $("#reporting_display tbody").append(newRow+'</tr>').find("tr").last().attr({"data-queryObject":JSON.stringify(thisRow)});
+        });
+        $("a.remove_query").click(function(event) {
+           removeQuery(JSON.parse($(this).closest("tr").attr("data-queryObject")));
+           return false;
         });
     } else {
         if (processedData.length > 0) {
@@ -386,7 +393,11 @@ var CallBox = function() {
                 });
                 console.log("Error Status: "+errorText+" (details below)");
                 console.log(jqXHR);
-                alert('Could not complete query.\n\nPlease check your browser console for details.');
+                alertEngine.showAlert({
+                    alertTitle : "Could not complete query:",
+                    alertBody : errorText,
+                    alertClass : "error"
+                });
             },
             complete : function(jqXHR, textStatus) {}
         };
@@ -398,6 +409,92 @@ var CallBox = function() {
         $.ajax(that.baseUrl+nextCallInfo.url, callPayload);
     };
 };
+
+/** Alert display mechanism. */
+var alertEngine;
+var AlertBox = function() {
+    var that = this;
+
+    /**
+        Takes an alert object with optional title, body, and class, and displays it.
+        @param {object} messageObject - the message object.
+    */
+    this.showAlert = function(messageObject) {
+        var messageHtml = "";
+        if (messageObject.hasOwnProperty("alertTitle")) messageHtml += "<strong>"+messageObject.alertTitle+"</strong>";
+        if (messageObject.hasOwnProperty("alertBody")) messageHtml += messageObject.alertBody;
+        var alertClass = (messageObject.hasOwnProperty("alertClass")) ? " alert-"+messageObject.alertClass : "";
+
+        /** If the message is greater than 120 characters or has embedded paragraph tags, use the "alert-block" class for improved appearance. */
+        if ((messageHtml.length > 120) || (messageHtml.indexOf("<p>") > -1)) alertClass += " alert-block";
+
+        /** Clear any existing alerts and show this new one. */
+        that.clearAlerts();
+        $(that.alertWrapper).prepend('<div class="alert_wrapper"><div class="alert_wrapper_inner"><div class="alert'+alertClass+'"><div class="alert-inner"><button type="button" class="close" data-dismiss="alert">&times;</button>'+messageHtml+'</div></div></div></div>');
+
+        /** When an alert's "close" button is clicked, clear all page alerts. */
+        $(that.alertWrapper+" .alert .close").click(function(event) {
+            that.clearAlerts();
+        });
+
+    }
+
+    /**
+        Store an alert in Session Storage for retrieval on a subsequent page.
+        @param {object} messageObject - the message object.
+    */
+    this.setAlert = function(messageObject) {
+        var messageString = JSON.stringify(messageObject);
+        sessionStorage.setItem("alert", messageString);
+    };
+
+    /**
+        If there is an alert in Session Storage, show it and then clear it.
+        @see showAlert.
+    */
+    this.getAlert = function() {
+        var sessionAlert = (sessionStorage.getItem("alert")) || false;
+        if (sessionAlert) {
+            var messageObject = JSON.parse(sessionAlert);
+            that.showAlert(messageObject);
+            sessionStorage.removeItem("alert");
+        }
+    };
+
+    /** Clear any existing alerts. */
+    this.clearAlerts = function() {
+        $(that.alertWrapper+" div.alert_wrapper").remove();
+    };
+
+    /**
+        Establish container for alert messages and check for alerts in Session Storage.
+        @see getAlert.
+    */
+    var init = function() {
+        that.alertWrapper = "body";
+        that.getAlert();
+    }();
+
+};
+
+var removeQuery = function(queryObject) {
+    var newUrl = false;
+    forEach(queryObject, function(objectValue, objectKey) {
+        newUrl = objectKey;
+    });
+    apiCaller.doCall({
+        url : "/"+newUrl,
+        settings : {
+            type : "DELETE",
+            success : function(data, textStatus, jqXHR) {
+                alertEngine.setAlert({
+                    alertBody : "Query Removed."
+                });
+                location.reload(true);
+            }
+        }
+    });
+}
 
 /** Utility Functions. */
 /**
