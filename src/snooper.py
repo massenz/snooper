@@ -396,6 +396,61 @@ def parse_queries(filename):
         print 'Could not parse queries file %s: %s' % (filename, ex)
 
 
+def validate_query(query, queries):
+    """ Validates the query against the map of existing queries
+
+    A new query is composed of a SQL statement, which may comprise a number of named arguments,
+    the (label, name) pairs of named arguments and, optionally, a ``drill_down`` argument,
+    with a list of related API endpoints for further analysis of the results.
+
+    This method validates that the new query is syntactally correct and the references are correct.
+
+    @param query: the new query, with the following format:
+
+        {
+            "drill_down": {
+                "email_address": "/api/1/query/get_user_by_email/email/$"
+            },
+            "params": [
+                {
+                    "label": "User UUID",
+                    "name": "id"
+                }
+            ],
+            "sql": "SELECT * FROM USERS WHERE UUID=%(id)s"
+        }
+
+        Of these, only ``sql`` is mandatory, the others are optional.
+        This method will match that the ``params`` names match the ``%(name)`` clauses, and that
+        the ``drill_down`` points to existing queries and the name(s) in the URL match the
+        ``params`` in that query too.
+
+    @type query: dict
+    @param queries: the dict of existing queries
+    @type queries: dict
+    @return: ``True`` if the query is valid
+    @rtype: bool
+    """
+    regex = r'%\(\w+\)s'
+    sql = query['sql']
+    found = re.findall(regex, sql)
+    expected_params = []
+    for param in found:
+        # Need to replace the %(xxx)s with just the xxx values
+        expected_params.append(param[2:-2])
+    query_params = [p['name'] for p in query.get('params')]
+    for param in query_params:
+        if param in expected_params:
+            expected_params.remove(param)
+        else:
+            raise SyntaxError('Param {} not one of the expected SQL query parameters: {}'.format(
+                param, expected_params))
+    if expected_params:
+        raise SyntaxError('Not all parameters for the SQL query [{}] have been specified: {} '
+                          'still missing'.format(sql, expected_params))
+    return True
+
+
 def parse_query_params(named_params):
     """ Parses a list of name, value parameter values and builds a dict that can be passed to
         sycopg2 ```execute()``` method.

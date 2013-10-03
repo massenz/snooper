@@ -82,15 +82,29 @@ def get_all_queries():
 
 
 @app.route('/'.join([REST_BASE_URL, '<query>', '<path:args>']))
-@app.route('/'.join([REST_BASE_URL, '<query>']), methods=['GET', 'POST', 'PUT'])
+@app.route('/'.join([REST_BASE_URL, '<query>']), methods=['GET', 'POST', 'PUT', 'DELETE'])
 def query_resource(query, args=None):
     if request.method in ['POST', 'PUT']:
         return upsert_query(query, is_new=(request.method == 'POST'))
     elif request.method == 'GET':
         return get(query, args)
+    elif request.method == 'DELETE':
+        return delete_query(query)
     else:
         return ApiException('Method {} not implemented'.format(request.method))
 
+
+def delete_query(query):
+    queries = snooper.parse_queries(conf.queries)
+    if not queries:
+        raise ApiException('No queries found')
+    elif query not in queries:
+        raise ApiException('Query {} not found'.format(query))
+    queries.pop(query)
+    app.logger.debug('Query {} removed'.format(query))
+    with open(conf.queries, 'w') as fd:
+        json.dump({"queries": queries}, fd, sort_keys=True, indent=4, separators=(',', ': '))
+    return json.dumps({'result': 'removed'})
 
 def upsert_query(query, is_new=False):
     queries = snooper.parse_queries(conf.queries)
@@ -102,7 +116,8 @@ def upsert_query(query, is_new=False):
         raise ApiException('Query {} not found'.format(query))
     try:
         query_json = json.loads(request.data)
-        queries[query] = query_json
+        if snooper.validate_query(query_json, queries):
+            queries[query] = query_json
     except Exception as e:
         app.logger.error('Cannot parse data {} into valid JSON: {}'.format(request.data, e))
         raise ApiException(e)
