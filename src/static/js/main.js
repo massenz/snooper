@@ -387,6 +387,9 @@ var CallBox = function() {
             },
             success : function(data, textStatus, jqXHR) {},
             error : function(jqXHR, textStatus, errorThrown) {
+                console.log('status: '+textStatus);
+                console.log('errorThrown: '+errorThrown);
+                console.log(JSON.stringify(jqXHR));
                 var errorText = [];
                 forEach([textStatus, errorThrown], function(thisText) {
                     if (thisText.length > 0) errorText.push(thisText);
@@ -398,6 +401,7 @@ var CallBox = function() {
                     alertBody : errorText,
                     alertClass : "error"
                 });
+                $(".modal").modal("hide");
             },
             complete : function(jqXHR, textStatus) {}
         };
