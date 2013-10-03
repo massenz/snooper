@@ -54,6 +54,40 @@ var showData = function(rawData, dataUrl) {
     var headersWritten = false;
 
     if (showQueries) {
+        $("#create_query").show().click(function(event) {
+            $("#query_editor").modal("toggle");
+            return false;
+        });
+        $("#submit_query_create").click(function(event) {
+            var callPayload = {
+                "sql" : $("#querySql").val(),
+                "params" : []
+            };
+            for(var i=0; i<3; i++) {
+                var thisName = $("#param_name"+i).val();
+                var thisLabel = $("#param_label"+i).val();
+                if ((thisName !== "") && (thisLabel !== "")) {
+                    callPayload.params.push({"name":thisName, "label":thisLabel});
+                }
+            }
+            apiCaller.doCall({
+                url : "/"+makeSafeName($("#queryName").val().split(" ").join("_")),
+                settings : {
+                    type : "POST",
+                    processData : false,
+                    contentType : "application/json",
+                    data : JSON.stringify(callPayload),
+                    success : function(data, textStatus, jqXHR) {
+                        location.reload(true);
+                    }
+                }
+            });
+        });
+        $("#submit_query_cancel").mousedown(function(event) {
+            $("#create_query_form input, #create_query_form textarea").val("");
+        });
+
+
         $("#reporting_display thead").append('<tr><th>Query <i class="icon-sort-down"></i></th><th colspan="2">Parameters <i class="icon-sort-down"></i></th></tr>');
         $("#reporting_display").addClass("js_sorTable");
         headersWritten = true;
