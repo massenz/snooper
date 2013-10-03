@@ -11,6 +11,9 @@ body {
     line-height: 40px;
     font-size: 20px;
 }
+#create_query {
+    margin-bottom: 20px;
+}
 .js_sorTable {
     font-size: smaller;
 }

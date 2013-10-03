@@ -26,10 +26,56 @@
             <div class="container">
                 <div class="container-fluid">
                     <div class="row">
+                        <a class="btn btn-primary btn-large" href="#" id="create_query" style="display: none;">Create Query</a>
                         <i class="icon-spinner  icon-4x icon-spin" id="loading_icon"></i>
                         <table id="reporting_display" class="table table-condensed table-hover"><thead></thead><tbody></tbody></table>
                     </div>
                 </div>
+            </div>
+        </div>
+        <div id="query_editor" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="query_editorLabel" aria-hidden="true" style="display: none;">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h3 id="query_editorLabel">Create Query</h3>
+            </div>
+            <div class="modal-body">
+                <form class="form-horizontal" method="GET" action="#" id="create_query_form">
+                    <div class="control-group">
+                        <label class="control-label" for="queryName">Query Name</label>
+                        <div class="controls">
+                            <input type="text" id="queryName" />
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label" for="querySql">SQL</label>
+                        <div class="controls">
+                            <textarea rows="3" id="querySql"></textarea>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label" for="queryParams">Parameters</label>
+                        <div class="controls">
+                            <input type="text" class="input-small" id="param_label0" placeholder="Label" />
+                            <input type="text" class="input-small" id="param_name0" placeholder="Name" />
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <div class="controls">
+                            <input type="text" class="input-small" id="param_label1" placeholder="Label" />
+                            <input type="text" class="input-small" id="param_name1" placeholder="Name" />
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <div class="controls">
+                            <input type="text" class="input-small" id="param_label2" placeholder="Label" />
+                            <input type="text" class="input-small" id="param_name2" placeholder="Name" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" data-dismiss="modal" aria-hidden="true" id="submit_query_cancel">Cancel</button>
+                <button class="btn btn-primary" id="submit_query_create">Create Query</button>
             </div>
         </div>
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
