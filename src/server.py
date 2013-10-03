@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # Copyright (c) 2013 RiverMeadow Software Inc. All rights reserved.
-
+import urllib
 
 
 __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
@@ -22,7 +22,7 @@ from flask import (Flask,
                    session,
                    send_file,
                    make_response,
-                   got_request_exception)
+                   request, url_for)
 from flask.ext import restful
 from flask.ext.restful import reqparse
 import json
@@ -34,7 +34,6 @@ from werkzeug.local import LocalProxy
 SECRET_KEY = '#3K5h43Hl53&s0Bod62y$%C34t6oDv3NN47Oz24GT7$3TFJWDS5yX7E7&a4994e0'
 REST_BASE_URL = '/api/1/query'
 
-
 conf = snooper.parse_args()
 app = Flask('snooper')
 if not conf.debug:
@@ -42,10 +41,10 @@ if not conf.debug:
     # we enable it here to log DEBUG level to Console
     app.logger.setLevel(logging.DEBUG)
     app.logger.addHandler(logging.StreamHandler())
-api = restful.Api(app)
+
 
 @app.errorhandler(404)
-def redirect_to_UI(error):
+def redirect_to_ui(error):
     return render_template('index.html')
 
 
@@ -54,60 +53,82 @@ def handle_ex(exception):
     app.logger.error("Ex: %s" % exception)
     return render_error('Application Error', exception)
 
-for error in range(500, 506):
-    app.error_handler_spec[None][error] = handle_ex
-
 
 @app.route('/test')
 def test():
+    """Used to test correct re-routing of application exceptions"""
     raise RuntimeError("this was an error")
 
 
 class RestResource(restful.Resource):
-    """
-        A base class for all resources, where we can stash the logger and the configuration objects
-    """
-
+    """ A base class for all resources """
     _conf = {}
     _logger = None
 
 
 @app.route(REST_BASE_URL)
+def get_all():
+    """Gets all existing queries"""
+    return json.dumps({"queries": get_all_queries()})
+
+
 def get_all_queries():
     queries = []
     all_queries = snooper.parse_queries(conf.queries)
     for query_name, query_value in all_queries.iteritems():
         args = query_value.get('params', [])
         queries.append({query_name: args})
-    return json.dumps({"queries": queries})
+    return queries
 
 
 @app.route('/'.join([REST_BASE_URL, '<query>', '<path:args>']))
-@app.route('/'.join([REST_BASE_URL, '<query>']))
+@app.route('/'.join([REST_BASE_URL, '<query>']), methods=['GET', 'POST'])
+def query_resource(query, args=None):
+    if request.method == 'POST':
+        return post_query(query)
+    else:
+        return get(query, args)
+
+
+def post_query(query):
+    queries = snooper.parse_queries(conf.queries)
+    if query in queries:
+        raise ApiException('Query {} already exists'.format(query))
+    try:
+        query_json = json.loads(request.data)
+        print query_json
+        queries[query] = query_json
+    except Exception as e:
+        app.logger.error("Cannot load data: {}".format(e))
+        raise ApiException(e)
+    app.logger.debug('New query {} created: {}'.format(query, queries[query]['sql']))
+    with open(conf.queries, 'w') as fd:
+        json.dump(queries, fd, sort_keys=True, indent=4, separators=(',', ': '))
+    return json.dumps({'result': 'success'})
+
+
 def get(query, args=None):
-    query = snooper.parse_queries(conf.queries).get(query)
-    if query:
+    query_dict = snooper.parse_queries(conf.queries).get(query)
+    if query_dict:
         params = None
         if args:
             params = snooper.parse_query_params(args.split('/'))
-        res = run_query(query.get("sql"), params)
-        res["drill_down"] = query.get("drill_down")
+        res = run_query(query_dict.get("sql"), params)
+        res["drill_down"] = query_dict.get("drill_down")
         return json.dumps(res)
     else:
-        app.logger.error('Could not find query %s', query)
-        return json.dumps({
-            "error": {"err_title": 'Query Not Found',
-                      "err_msg": 'Could not find query {} in the given query '
-                                 'JSON file [{}]'.format(query, self._conf.queries)
-            }
-        })
+        app.logger.error('Could not find query %s', query_dict)
+        return redirect(url_for('/'.join(['error',
+                        urllib.quote('Query Not Found'),
+                        urllib.quote('Could not find query {} in the given query JSON file [{}]'
+                                     .format(query_dict, conf.queries))])))
 
 
 def run_query(query, params=None):
     db_conn.query = query
     db_conn.params = params
     app.logger.debug('Executing query: {} - with params: {}'.format(db_conn.query,
-                                                                      db_conn.params))
+                                                                    db_conn.params))
     res = db_conn.execute()
     app.logger.debug('Found {} results'.format(res["rowcount"]))
     return res
@@ -125,7 +146,8 @@ class PromotionCodesResource(RestResource):
     def _check_args_exist_in_request(self, args):
         for required in PromotionCodesResource.REQUEST_ARGS:
             if not required in args:
-                self._logger.error("Argument {} not found in the request arguments".format(required,))
+                self._logger.error(
+                    "Argument {} not found in the request arguments".format(required, ))
                 return False
         return True
 
@@ -161,7 +183,7 @@ def post_error_message(title, message):
 @app.route('/error')
 def generate_error():
     """this just raises - use only for TEST purposes"""
-    raise RuntimeError("this was an error auto-generated")
+    raise RuntimeError("this was an auto-generated error")
 
 
 def render_error(title, message):
@@ -201,14 +223,15 @@ def get_db():
 db_conn = LocalProxy(get_db)
 
 
-def build_routes(api, conf, logger):
+def build_routes():
     """ Sets up the routes for the REST API.
 
         @param api: the Flask REST object to add routes to
         @type api: L{restful.Api}
     """
+    api = restful.Api(app)
     RestResource._conf = conf
-    RestResource._logger = logger
+    RestResource._logger = app.logger
     api.add_resource(PromotionCodesResource, '/'.join(['', 'codes', '<int:count>']))
 
 
@@ -219,7 +242,8 @@ class ApiException(Exception):
 def run_server():
     """ The main server app, starts up Flask, sets up the routes and handles requests
     """
-    build_routes(api, conf, app.logger)
+
+    build_routes()
     app.run(debug=conf.debug, host='0.0.0.0')
 
 
