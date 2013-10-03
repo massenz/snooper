@@ -117,6 +117,8 @@ class PromotionCodesResource(RestResource):
 class ErrorGenerator(RestResource):
 
     def post(self, title, message):
+        title = title.replace('+', ' ')
+        message = message.replace('+', ' ')
         self._logger.error("{}: {}".format(title, message))
         return render_error(title, message)
 
