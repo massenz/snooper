@@ -82,26 +82,31 @@ def get_all_queries():
 
 
 @app.route('/'.join([REST_BASE_URL, '<query>', '<path:args>']))
-@app.route('/'.join([REST_BASE_URL, '<query>']), methods=['GET', 'POST'])
+@app.route('/'.join([REST_BASE_URL, '<query>']), methods=['GET', 'POST', 'PUT'])
 def query_resource(query, args=None):
-    if request.method == 'POST':
-        return post_query(query)
-    else:
+    if request.method in ['POST', 'PUT']:
+        return upsert_query(query, is_new=(request.method == 'POST'))
+    elif request.method == 'GET':
         return get(query, args)
+    else:
+        return ApiException('Method {} not implemented'.format(request.method))
 
 
-def post_query(query):
-    queries = snooper.parse_queries(conf.queries) or {}
-    if queries and query in queries:
+def upsert_query(query, is_new=False):
+    queries = snooper.parse_queries(conf.queries)
+    if not queries:
+        raise ApiException('No queries found')
+    if is_new and query in queries:
         raise ApiException('Query {} already exists'.format(query))
+    elif not is_new and query not in queries:
+        raise ApiException('Query {} not found'.format(query))
     try:
         query_json = json.loads(request.data)
-        print query_json
         queries[query] = query_json
     except Exception as e:
-        app.logger.error("Cannot load data: {}".format(e))
+        app.logger.error('Cannot parse data {} into valid JSON: {}'.format(request.data, e))
         raise ApiException(e)
-    app.logger.debug('New query {} created: {}'.format(query, queries[query]['sql']))
+    app.logger.debug('Query {} created/updated: {}'.format(query, queries[query]['sql']))
     with open(conf.queries, 'w') as fd:
         json.dump({"queries": queries}, fd, sort_keys=True, indent=4, separators=(',', ': '))
     return json.dumps({'result': 'success'})
