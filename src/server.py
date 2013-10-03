@@ -208,8 +208,10 @@ def render_error(title, message):
     content_type = request.headers['Content-Type']
     if content_type == 'application/json':
         err = {
-            'message': message,
-            'title': title
+            'error': {
+                'message': message,
+                'title': title
+            }
         }
         return json.dumps(err)
     return render_template('err_msg.html', title=title, message=message)
