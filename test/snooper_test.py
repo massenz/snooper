@@ -70,7 +70,6 @@ class SnooperTest(unittest.TestCase):
             snooper.validate_query(query, queries)
 
     def test_me(self):
-        print 'boooo'
         q = {
             "sql": "SELECT * FROM USERS WHERE UUID=%(id)s AND first_name=%(name)s",
             "drill_down": {
@@ -82,4 +81,5 @@ class SnooperTest(unittest.TestCase):
             }]
         }
         qs = {}
-        self.assertRaises(SyntaxError, snooper.validate_query(q, qs))
+        with self.assertRaises(SyntaxError):
+            snooper.validate_query(q, qs)

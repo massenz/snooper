@@ -51,7 +51,7 @@ def redirect_to_ui(error):
 @app.errorhandler(Exception)
 def handle_ex(exception):
     app.logger.exception(exception)
-    return render_error('Application Error', exception)
+    return render_error('Application Error', str(exception))
 
 
 @app.route('/test')
@@ -60,25 +60,10 @@ def test():
     raise RuntimeError("this was an error")
 
 
-class RestResource(restful.Resource):
-    """ A base class for all resources """
-    _conf = {}
-    _logger = None
-
-
 @app.route(REST_BASE_URL)
 def get_all():
     """Gets all existing queries"""
     return json.dumps({"queries": get_all_queries()})
-
-
-def get_all_queries():
-    queries = []
-    all_queries = snooper.parse_queries(conf.queries)
-    for query_name, query_value in all_queries.iteritems():
-        args = query_value.get('params', [])
-        queries.append({query_name: args})
-    return queries
 
 
 @app.route('/'.join([REST_BASE_URL, '<query>', '<path:args>']))
@@ -94,6 +79,29 @@ def query_resource(query, args=None):
         return ApiException('Method {} not implemented'.format(request.method))
 
 
+@app.route('/error/<title>/<message>', methods=['POST'])
+def post_error_message(title, message):
+    title = title.replace('+', ' ')
+    message = message.replace('+', ' ')
+    app.logger.error("{}: {}".format(title, message))
+    return render_error(title, message)
+
+
+@app.route('/error')
+def generate_error():
+    """this just raises - use only for TEST purposes"""
+    raise RuntimeError("this was an auto-generated error")
+
+
+def get_all_queries():
+    queries = []
+    all_queries = snooper.parse_queries(conf.queries)
+    for query_name, query_value in all_queries.iteritems():
+        args = query_value.get('params', [])
+        queries.append({query_name: args})
+    return queries
+
+
 def delete_query(query):
     queries = snooper.parse_queries(conf.queries)
     if not queries:
@@ -105,6 +113,7 @@ def delete_query(query):
     with open(conf.queries, 'w') as fd:
         json.dump({"queries": queries}, fd, sort_keys=True, indent=4, separators=(',', ': '))
     return json.dumps({'result': 'removed'})
+
 
 def upsert_query(query, is_new=False):
     queries = snooper.parse_queries(conf.queries)
@@ -154,7 +163,7 @@ def run_query(query, params=None):
     return res
 
 
-class PromotionCodesResource(RestResource):
+class PromotionCodesResource(restful.Resource):
     REQUEST_ARGS = ['cloud', 'provider', 'cloud_type', 'created_by']
 
     def __init__(self):
@@ -163,19 +172,20 @@ class PromotionCodesResource(RestResource):
             parser.add_argument(arg, location='form')
         self._parser = parser
 
-    def _check_args_exist_in_request(self, args):
+    @staticmethod
+    def _check_args_exist_in_request(args):
         for required in PromotionCodesResource.REQUEST_ARGS:
             if not required in args:
-                self._logger.error(
+                app.logger.error(
                     "Argument {} not found in the request arguments".format(required, ))
                 return False
         return True
 
     def post(self, count):
         args = self._parser.parse_args()
-        if not self._check_args_exist_in_request(args):
-            self._logger.error("All required args should be passed in the request, "
-                               "found: {}".format(args))
+        if not PromotionCodesResource._check_args_exist_in_request(args):
+            app.logger.error("All required args should be passed in the request, "
+                             "found: {}".format(args))
             return render_error('Missing Argument',
                                 'All required args [{}] should be passed in the request, '
                                 'only {} found'.format(PromotionCodesResource.REQUEST_ARGS, args))
@@ -188,27 +198,20 @@ class PromotionCodesResource(RestResource):
             mgr.make_coupons(count, filename=filename)
             return send_file(filename, as_attachment=True)
         except Exception as e:
-            self._logger.error(e.message)
+            app.logger.error(e)
             return render_error("Error creating codes", e.message)
-
-
-@app.route('/error/<title>/<message>', methods=['POST'])
-def post_error_message(title, message):
-    title = title.replace('+', ' ')
-    message = message.replace('+', ' ')
-    app.logger.error("{}: {}".format(title, message))
-    return render_error(title, message)
-
-
-@app.route('/error')
-def generate_error():
-    """this just raises - use only for TEST purposes"""
-    raise RuntimeError("this was an auto-generated error")
 
 
 def render_error(title, message):
     """ Helper method to just render an error page
     """
+    content_type = request.headers['Content-Type']
+    if content_type == 'application/json':
+        err = {
+            'message': message,
+            'title': title
+        }
+        return json.dumps(err)
     return render_template('err_msg.html', title=title, message=message)
 
 
@@ -250,8 +253,8 @@ def build_routes():
         @type api: L{restful.Api}
     """
     api = restful.Api(app)
-    RestResource._conf = conf
-    RestResource._logger = app.logger
+    PromotionCodesResource._conf = conf
+    PromotionCodesResource._logger = app.logger
     api.add_resource(PromotionCodesResource, '/'.join(['', 'codes', '<int:count>']))
 
 
