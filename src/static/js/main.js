@@ -16,6 +16,7 @@ var pageReady = function() {
 };
 
 var showData = function(rawData, dataUrl) {
+    $("#loading_icon").hide();
     console.log('data:');
     console.log(rawData);
 
