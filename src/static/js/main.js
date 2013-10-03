@@ -67,32 +67,36 @@ var showData = function(rawData, dataUrl) {
             $("#reporting_display tbody").append(newRow+'</tr>');
         });
     } else {
-        forEach(processedData, function(thisRow) {
-            var rowKeys = [];
-            var newRow = '<tr>';
-            var colIterator = 0;
-            forEach(thisRow, function(thisData, thisKey) {
-                rowKeys.push(makePrettyName(thisKey));
-                var cookedData = (thisKey === "status") ? makePrettyStatus(thisData) : thisData;
-                if ($.isArray(thisData)) {
-                    cookedData = '<dl>';
-                    forEach(thisData, function(thisStep) {
-                        cookedData += '<dt>'+makePrettyName(thisStep.name)+':</dt><dd>'+makePrettyStatus(thisStep.status)+'</dd>';
-                    });
-                    cookedData += '</dl>';
-                } else if (drillDown.hasOwnProperty(thisKey)) {
-                    cookedData = '<a href="'+urlEngine.rootUrl + drillDown[thisKey].split("$").join(cookedData).split("api/1/query/").join("")+'">'+cookedData+'</a>';
+        if (processedData.length > 0) {
+            forEach(processedData, function(thisRow) {
+                var rowKeys = [];
+                var newRow = '<tr>';
+                var colIterator = 0;
+                forEach(thisRow, function(thisData, thisKey) {
+                    rowKeys.push(makePrettyName(thisKey));
+                    var cookedData = (thisKey === "status") ? makePrettyStatus(thisData) : thisData;
+                    if ($.isArray(thisData)) {
+                        cookedData = '<dl>';
+                        forEach(thisData, function(thisStep) {
+                            cookedData += '<dt>'+makePrettyName(thisStep.name)+':</dt><dd>'+makePrettyStatus(thisStep.status)+'</dd>';
+                        });
+                        cookedData += '</dl>';
+                    } else if (drillDown.hasOwnProperty(thisKey)) {
+                        cookedData = '<a href="'+urlEngine.rootUrl + drillDown[thisKey].split("$").join(cookedData).split("api/1/query/").join("")+'">'+cookedData+'</a>';
+                    }
+                    newRow += '<td data-colId="'+colIterator+'" class="js_colId-'+colIterator+'">'+cookedData+'</td>';
+                    colIterator++;
+                });
+                $("#reporting_display tbody").append(newRow+'</tr>');
+                if (!headersWritten) {
+                    $("#reporting_display").addClass("js_sorTable");
+                    $("#reporting_display thead").append('<tr><th>'+rowKeys.join(' <i class="icon-sort-down"></i></th><th>')+' <i class="icon-sort-down"></i></th></tr>');
+                    headersWritten = true;
                 }
-                newRow += '<td data-colId="'+colIterator+'" class="js_colId-'+colIterator+'">'+cookedData+'</td>';
-                colIterator++;
             });
-            $("#reporting_display tbody").append(newRow+'</tr>');
-            if (!headersWritten) {
-                $("#reporting_display").addClass("js_sorTable");
-                $("#reporting_display thead").append('<tr><th>'+rowKeys.join(' <i class="icon-sort-down"></i></th><th>')+' <i class="icon-sort-down"></i></th></tr>');
-                headersWritten = true;
-            }
-        });
+        } else {
+            $("#reporting_display tbody").append('<tr><td>No results found.</td></tr>');
+        }
     }
     tableEngine.setUpTableSort($("#reporting_display"));
 
