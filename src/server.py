@@ -50,7 +50,7 @@ def redirect_to_ui(error):
 
 @app.errorhandler(Exception)
 def handle_ex(exception):
-    app.logger.error("Ex: %s" % exception)
+    app.logger.exception(exception)
     return render_error('Application Error', exception)
 
 
@@ -91,8 +91,8 @@ def query_resource(query, args=None):
 
 
 def post_query(query):
-    queries = snooper.parse_queries(conf.queries)
-    if query in queries:
+    queries = snooper.parse_queries(conf.queries) or {}
+    if queries and query in queries:
         raise ApiException('Query {} already exists'.format(query))
     try:
         query_json = json.loads(request.data)
@@ -103,7 +103,7 @@ def post_query(query):
         raise ApiException(e)
     app.logger.debug('New query {} created: {}'.format(query, queries[query]['sql']))
     with open(conf.queries, 'w') as fd:
-        json.dump(queries, fd, sort_keys=True, indent=4, separators=(',', ': '))
+        json.dump({"queries": queries}, fd, sort_keys=True, indent=4, separators=(',', ': '))
     return json.dumps({'result': 'success'})
 
 
