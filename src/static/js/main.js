@@ -1,3 +1,5 @@
+var previousPage = false;
+
 /** Code to be invoked when page assets have finished loading. */
 var pageReady = function() {
     /** Instantiate Objects */
@@ -43,6 +45,8 @@ var showData = function(rawData, dataUrl) {
         var statusKey = makePrettyName(directiveElements[0]);
         $("ul.nav").html('<li><a href="#">'+statusKey+'</a></li>');
         $("title").html('Snooper - '+statusKey);
+        previousPage = memoryToObject("previous_page");
+        objectToMemory("previous_page", {"title":statusKey, "url":document.location.href});
     }
 
     $("ul.nav").append('<li><a href="mailto:?subject=reporting&body='+document.location.href+'"><i class="icon-cloud-upload"></i> '+processedData.length+' Total</a></li>');
@@ -95,7 +99,8 @@ var showData = function(rawData, dataUrl) {
                 }
             });
         } else {
-            $("#reporting_display tbody").append('<tr><td>No results found.</td></tr>');
+            var backLink = (previousPage) ? ' Back to <a href="'+previousPage.url+'">'+previousPage.title+'</a>.' : "";
+            $("#reporting_display tbody").append('<tr><td>No results found.'+backLink+'</td></tr>');
         }
     }
     tableEngine.setUpTableSort($("#reporting_display"));
@@ -496,6 +501,23 @@ var memoryToObject = function(itemName) {
     }
     return itemObject;
 };
+
+/**
+    Takes an object and saves it to session storage.
+    @param {string} objectName - name to use as a storage key.
+    @param {object} theObject - the object passed in.
+    @returns {string} theString - the stringified version of the object.
+*/
+var objectToMemory = function(objectName, theObject) {
+    var theString;
+    try {
+        theString = JSON.stringify(theObject);
+        sessionStorage.setItem(objectName, theString);
+    } catch (e) {
+        theString = false;
+    }
+    return theString;
+}
 
 /**
     Return a code-safe version of a supplied string.
