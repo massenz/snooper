@@ -63,7 +63,7 @@ var showData = function(rawData, dataUrl) {
                 "sql" : $("#querySql").val(),
                 "params" : []
             };
-            for(var i=0; i<3; i++) {
+            for(var i=0; i<5; i++) {
                 var thisName = $("#param_name"+i).val();
                 var thisLabel = $("#param_label"+i).val();
                 if ((thisName !== "") && (thisLabel !== "")) {
