@@ -16,7 +16,13 @@ __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
 """
 
 import flask
-from flask import Flask, abort, redirect, session, send_file, make_response
+from flask import (Flask,
+                   abort,
+                   redirect,
+                   session,
+                   send_file,
+                   make_response,
+                   got_request_exception)
 from flask.ext import restful
 from flask.ext.restful import reqparse
 import json
@@ -29,6 +35,34 @@ SECRET_KEY = '#3K5h43Hl53&s0Bod62y$%C34t6oDv3NN47Oz24GT7$3TFJWDS5yX7E7&a4994e0'
 REST_BASE_URL = '/api/1/query'
 
 
+conf = snooper.parse_args()
+app = Flask('snooper')
+if not conf.debug:
+    # By default, in non-debug mode, the app logger does not log anything
+    # we enable it here to log DEBUG level to Console
+    app.logger.setLevel(logging.DEBUG)
+    app.logger.addHandler(logging.StreamHandler())
+api = restful.Api(app)
+
+@app.errorhandler(404)
+def redirect_to_UI(error):
+    return render_template('index.html')
+
+
+@app.errorhandler(Exception)
+def handle_ex(exception):
+    app.logger.error("Ex: %s" % exception)
+    return render_error('Application Error', exception)
+
+for error in range(500, 506):
+    app.error_handler_spec[None][error] = handle_ex
+
+
+@app.route('/test')
+def test():
+    raise RuntimeError("this was an error")
+
+
 class RestResource(restful.Resource):
     """
         A base class for all resources, where we can stash the logger and the configuration objects
@@ -38,43 +72,45 @@ class RestResource(restful.Resource):
     _logger = None
 
 
-class QueryAllResource(RestResource):
-    def get(self):
-        queries = []
-        all_queries = snooper.parse_queries(self._conf.queries)
-        for query_name, query_value in all_queries.iteritems():
-            args = query_value.get('params', [])
-            queries.append({query_name: args})
-        return {"queries": queries}
+@app.route(REST_BASE_URL)
+def get_all_queries():
+    queries = []
+    all_queries = snooper.parse_queries(conf.queries)
+    for query_name, query_value in all_queries.iteritems():
+        args = query_value.get('params', [])
+        queries.append({query_name: args})
+    return json.dumps({"queries": queries})
 
 
-class QueryResource(RestResource):
-    def get(self, query, args=None):
-        query = snooper.parse_queries(self._conf.queries).get(query)
-        if query:
-            params = None
-            if args:
-                params = snooper.parse_query_params(args.split('/'))
-            res = self.run_query(query.get("sql"), params)
-            res["drill_down"] = query.get("drill_down")
-            return res
-        else:
-            self._logger.error('Could not find query %s', query)
-            return {
-                "error": {"err_title": 'Query Not Found',
-                          "err_msg": 'Could not find query {} in the given query '
-                                     'JSON file [{}]'.format(query, self._conf.queries)
-                }
+@app.route('/'.join([REST_BASE_URL, '<query>', '<path:args>']))
+@app.route('/'.join([REST_BASE_URL, '<query>']))
+def get(query, args=None):
+    query = snooper.parse_queries(conf.queries).get(query)
+    if query:
+        params = None
+        if args:
+            params = snooper.parse_query_params(args.split('/'))
+        res = run_query(query.get("sql"), params)
+        res["drill_down"] = query.get("drill_down")
+        return json.dumps(res)
+    else:
+        app.logger.error('Could not find query %s', query)
+        return json.dumps({
+            "error": {"err_title": 'Query Not Found',
+                      "err_msg": 'Could not find query {} in the given query '
+                                 'JSON file [{}]'.format(query, self._conf.queries)
             }
+        })
 
-    def run_query(self, query, params=None):
-        db_conn.query = query
-        db_conn.params = params
-        self._logger.debug('Executing query: {} - with params: {}'.format(db_conn.query,
-                                                                          db_conn.params))
-        res = db_conn.execute()
-        self._logger.debug('Found {} results'.format(res["rowcount"]))
-        return res
+
+def run_query(query, params=None):
+    db_conn.query = query
+    db_conn.params = params
+    app.logger.debug('Executing query: {} - with params: {}'.format(db_conn.query,
+                                                                      db_conn.params))
+    res = db_conn.execute()
+    app.logger.debug('Found {} results'.format(res["rowcount"]))
+    return res
 
 
 class PromotionCodesResource(RestResource):
@@ -114,13 +150,18 @@ class PromotionCodesResource(RestResource):
             return render_error("Error creating codes", e.message)
 
 
-class ErrorGenerator(RestResource):
+@app.route('/error/<title>/<message>', methods=['POST'])
+def post_error_message(title, message):
+    title = title.replace('+', ' ')
+    message = message.replace('+', ' ')
+    app.logger.error("{}: {}".format(title, message))
+    return render_error(title, message)
 
-    def post(self, title, message):
-        title = title.replace('+', ' ')
-        message = message.replace('+', ' ')
-        self._logger.error("{}: {}".format(title, message))
-        return render_error(title, message)
+
+@app.route('/error')
+def generate_error():
+    """this just raises - use only for TEST purposes"""
+    raise RuntimeError("this was an error auto-generated")
 
 
 def render_error(title, message):
@@ -151,7 +192,7 @@ def get_db():
     db = getattr(flask.g, '_database', None)
     if not db:
         conf = snooper.parse_args()
-        flask.current_app._logger.info("Opening connection to DB: {}".format(conf))
+        flask.current_app._logger.info("Opening connection to DB: {}".format(conf.conf))
         db = snooper.DbSnooper(conf=snooper.config_connection(conf))
         flask.g._database = db
     return db
@@ -168,39 +209,17 @@ def build_routes(api, conf, logger):
     """
     RestResource._conf = conf
     RestResource._logger = logger
-
-    api.add_resource(QueryAllResource, REST_BASE_URL)
-    api.add_resource(QueryResource, '/'.join([REST_BASE_URL, '<query>', '<path:args>']),
-                     '/'.join([REST_BASE_URL, '<query>']))
-
     api.add_resource(PromotionCodesResource, '/'.join(['', 'codes', '<int:count>']))
 
-    api.add_resource(ErrorGenerator, '/'.join(['', 'error', '<title>', '<message>']))
+
+class ApiException(Exception):
+    pass
 
 
 def run_server():
     """ The main server app, starts up Flask, sets up the routes and handles requests
     """
-    conf = snooper.parse_args()
-    app = Flask('snooper')
-    if not conf.debug:
-        # By default, in non-debug mode, the app logger does not log anything
-        # we enable it here to log DEBUG level to Console
-        app.logger.setLevel(logging.DEBUG)
-        app.logger.addHandler(logging.StreamHandler())
-    api = restful.Api(app)
     build_routes(api, conf, app.logger)
-
-    @app.errorhandler(404)
-    def redirect_to_UI(error):
-        app._logger.error('--- Not found: {}'.format(error))
-        return render_template('index.html')
-
-    @app.errorhandler(500)
-    def handle_ex(error):
-        app._logger.error(error)
-        return render_error('Application Error', error)
-
     app.run(debug=conf.debug, host='0.0.0.0')
 
 
