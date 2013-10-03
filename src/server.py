@@ -114,6 +114,13 @@ class PromotionCodesResource(RestResource):
             return render_error("Error creating codes", e.message)
 
 
+class ErrorGenerator(RestResource):
+
+    def post(self, title, message):
+        self._logger.error("{}: {}".format(title, message))
+        return render_error(title, message)
+
+
 def render_error(title, message):
     """ Helper method to just render an error page
     """
@@ -124,7 +131,7 @@ def render_template(template, **kwargs):
     """ Helper method to return the given template
 
         This is needed due to the nefarious conflict between assumed defaults in Flask RESTful and
-        Flask itselfl.
+        Flask itself.
     """
     response = make_response(flask.render_template(template, **kwargs))
     response.headers["Content-type"] = "text/html"
@@ -163,7 +170,10 @@ def build_routes(api, conf, logger):
     api.add_resource(QueryAllResource, REST_BASE_URL)
     api.add_resource(QueryResource, '/'.join([REST_BASE_URL, '<query>', '<path:args>']),
                      '/'.join([REST_BASE_URL, '<query>']))
+
     api.add_resource(PromotionCodesResource, '/'.join(['', 'codes', '<int:count>']))
+
+    api.add_resource(ErrorGenerator, '/'.join(['', 'error', '<title>', '<message>']))
 
 
 def run_server():
