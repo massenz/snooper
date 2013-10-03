@@ -6,6 +6,7 @@ var pageReady = function() {
     urlEngine = new UrlBox();
     apiCaller = new CallBox();
     tableEngine = new TableBox();
+    alertEngine = new AlertBox();
 
     apiCaller.doCall({
         url : urlEngine.getUrlDirective(),
@@ -78,6 +79,10 @@ var showData = function(rawData, dataUrl) {
                     contentType : "application/json",
                     data : JSON.stringify(callPayload),
                     success : function(data, textStatus, jqXHR) {
+                        alertEngine.setAlert({
+                            alertBody : "Query Created!",
+                            alertClass : "success"
+                        });
                         location.reload(true);
                     }
                 }
@@ -388,7 +393,11 @@ var CallBox = function() {
                 });
                 console.log("Error Status: "+errorText+" (details below)");
                 console.log(jqXHR);
-                alert('Could not complete query.\n\nPlease check your browser console for details.');
+                alertEngine.showAlert({
+                    alertTitle : "Could not complete query:",
+                    alertBody : errorText,
+                    alertClass : "error"
+                });
             },
             complete : function(jqXHR, textStatus) {}
         };
@@ -401,6 +410,73 @@ var CallBox = function() {
     };
 };
 
+/** Alert display mechanism. */
+var alertEngine;
+var AlertBox = function() {
+    var that = this;
+
+    /**
+        Takes an alert object with optional title, body, and class, and displays it.
+        @param {object} messageObject - the message object.
+    */
+    this.showAlert = function(messageObject) {
+        var messageHtml = "";
+        if (messageObject.hasOwnProperty("alertTitle")) messageHtml += "<strong>"+messageObject.alertTitle+"</strong>";
+        if (messageObject.hasOwnProperty("alertBody")) messageHtml += messageObject.alertBody;
+        var alertClass = (messageObject.hasOwnProperty("alertClass")) ? " alert-"+messageObject.alertClass : "";
+
+        /** If the message is greater than 120 characters or has embedded paragraph tags, use the "alert-block" class for improved appearance. */
+        if ((messageHtml.length > 120) || (messageHtml.indexOf("<p>") > -1)) alertClass += " alert-block";
+
+        /** Clear any existing alerts and show this new one. */
+        that.clearAlerts();
+        $(that.alertWrapper).prepend('<div class="alert_wrapper"><div class="alert_wrapper_inner"><div class="alert'+alertClass+'"><div class="alert-inner"><button type="button" class="close" data-dismiss="alert">&times;</button>'+messageHtml+'</div></div></div></div>');
+
+        /** When an alert's "close" button is clicked, clear all page alerts. */
+        $(that.alertWrapper+" .alert .close").click(function(event) {
+            that.clearAlerts();
+        });
+
+    }
+
+    /**
+        Store an alert in Session Storage for retrieval on a subsequent page.
+        @param {object} messageObject - the message object.
+    */
+    this.setAlert = function(messageObject) {
+        var messageString = JSON.stringify(messageObject);
+        sessionStorage.setItem("alert", messageString);
+    };
+
+    /**
+        If there is an alert in Session Storage, show it and then clear it.
+        @see showAlert.
+    */
+    this.getAlert = function() {
+        var sessionAlert = (sessionStorage.getItem("alert")) || false;
+        if (sessionAlert) {
+            var messageObject = JSON.parse(sessionAlert);
+            that.showAlert(messageObject);
+            sessionStorage.removeItem("alert");
+        }
+    };
+
+    /** Clear any existing alerts. */
+    this.clearAlerts = function() {
+        $(that.alertWrapper+" div.alert_wrapper").remove();
+    };
+
+    /**
+        Establish container for alert messages and check for alerts in Session Storage.
+        @see getAlert.
+    */
+    var init = function() {
+        that.alertWrapper = "body";
+        that.getAlert();
+    }();
+
+};
+
 var removeQuery = function(queryObject) {
     var newUrl = false;
     forEach(queryObject, function(objectValue, objectKey) {
@@ -411,6 +487,9 @@ var removeQuery = function(queryObject) {
         settings : {
             type : "DELETE",
             success : function(data, textStatus, jqXHR) {
+                alertEngine.setAlert({
+                    alertBody : "Query Removed."
+                });
                 location.reload(true);
             }
         }
