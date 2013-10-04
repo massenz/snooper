@@ -93,13 +93,20 @@ def generate_error():
     raise RuntimeError("this was an auto-generated error")
 
 
+@app.route('/'.join([REST_BASE_URL, '<query>', 'metadata']))
+def get_query_info(query):
+    """Returns all info about a query """
+    queries = snooper.parse_queries(conf.queries)
+    if not queries:
+        raise ApiException('No queries found')
+    elif query not in queries:
+        abort(404)
+    return json.dumps(queries.get(query))
+
+
 def get_all_queries():
-    queries = []
     all_queries = snooper.parse_queries(conf.queries)
-    for query_name, query_value in all_queries.iteritems():
-        args = query_value.get('params', [])
-        queries.append({query_name: args})
-    return queries
+    return all_queries
 
 
 def delete_query(query):
