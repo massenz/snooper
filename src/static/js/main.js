@@ -56,8 +56,9 @@ var showData = function(rawData, dataUrl) {
 
     if (showQueries) {
         $("#create_query").show().click(function(event) {
-            $("#query_editor").removeClass("edit_mode").modal("toggle");
+            $("#create_query_form input, #create_query_form textarea").val("");
             $("#queryName").removeClass("uneditable-input");
+            $("#query_editor").removeClass("edit_mode").modal("toggle");
             return false;
         });
         $("#submit_query_create").click(function(event) {
@@ -136,22 +137,23 @@ var showData = function(rawData, dataUrl) {
             $("#reporting_display tbody").append(newRow+'</tr>').find("tr").last().attr({"data-queryObject":JSON.stringify(thisRow)});
         });
         $("a.edit_query").click(function(event) {
-           var queryObject = JSON.parse($(this).closest("tr").attr("data-queryObject"));
-           var queryName = "";
-           forEach(queryObject, function(queryValue, queryKey) {
+            $("#create_query_form input, #create_query_form textarea").val("");
+            var queryObject = JSON.parse($(this).closest("tr").attr("data-queryObject"));
+            var queryName = "";
+            forEach(queryObject, function(queryValue, queryKey) {
                queryName = queryKey;
                return false;
-           });
-           $("#queryName").addClass("uneditable-input").val(queryName);
-           if (queryObject.hasOwnProperty("sql")) $("#querySql").val(queryObject.sql);
-           forEach(queryObject[queryName], function(thisParamSet, setKey) {
+            });
+            $("#queryName").addClass("uneditable-input").val(queryName);
+            if (queryObject.hasOwnProperty("sql")) $("#querySql").val(queryObject.sql);
+            forEach(queryObject[queryName], function(thisParamSet, setKey) {
                if (thisParamSet.hasOwnProperty("label") && thisParamSet.hasOwnProperty("name")) {
                    $("#param_label"+setKey).val(thisParamSet.label);
                    $("#param_name"+setKey).val(thisParamSet.name);
                }
-           });
-           $("#query_editor").addClass("edit_mode").modal("toggle");
-           return false;
+            });
+            $("#query_editor").addClass("edit_mode").modal("toggle");
+            return false;
         });
         $("a.remove_query").click(function(event) {
            removeQuery(JSON.parse($(this).closest("tr").attr("data-queryObject")));
