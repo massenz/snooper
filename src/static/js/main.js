@@ -56,7 +56,9 @@ var showData = function(rawData, dataUrl) {
 
     if (showQueries) {
         $("#create_query").show().click(function(event) {
-            $("#query_editor").modal("toggle");
+            $("#create_query_form input, #create_query_form textarea").val("");
+            $("#queryName").removeClass("uneditable-input");
+            $("#query_editor").removeClass("edit_mode").modal("toggle");
             return false;
         });
         $("#submit_query_create").click(function(event) {
@@ -83,10 +85,11 @@ var showData = function(rawData, dataUrl) {
                         callPayload.params.push({"name":thisName, "label":thisLabel});
                     }
                 }
+                var successMessage = $("#query_editor").hasClass("edit_mode") ? "Updated" : "Created"
                 apiCaller.doCall({
                     url : "/"+makeSafeName($("#queryName").val().split(" ").join("_")),
                     settings : {
-                        type : "POST",
+                        type : $("#query_editor").hasClass("edit_mode") ? "PUT" : "POST",
                         processData : false,
                         contentType : "application/json",
                         data : JSON.stringify(callPayload),
@@ -99,7 +102,7 @@ var showData = function(rawData, dataUrl) {
                                 });
                             } else {
                                 alertEngine.setAlert({
-                                    alertBody : "Query Created!",
+                                    alertBody : "Query "+successMessage+"!",
                                     alertClass : "success"
                                 });
                                 location.reload(true);
@@ -124,7 +127,7 @@ var showData = function(rawData, dataUrl) {
             var newRow = '<tr>';
             var colIterator = 0;
             forEach(thisRow, function(thisData, thisKey) {
-                newRow += '<td>'+makePrettyName(thisKey)+'</td>';
+                newRow += '<td><a href="#" class="edit_query">'+makePrettyName(thisKey)+'</a></td>';
                 newRow += '<td>'
                 forEach(thisData, function(thisParam, thisIterator) {
                     if (thisParam.hasOwnProperty("name") && thisParam.hasOwnProperty("label")) newRow += '<div class="controls"><input type="text" name="'+thisParam.name+'" placeholder="'+thisParam.label+'" /></div>';
@@ -132,6 +135,25 @@ var showData = function(rawData, dataUrl) {
                 newRow += '</td><td><a class="btn btn-primary js_executeQuery" href="'+thisKey+'">Execute Query</a></td><td class="remove_query_holder"><a href="#" class="remove_query"><i class="icon-remove-sign icon-2x"></i></a></td>';
             });
             $("#reporting_display tbody").append(newRow+'</tr>').find("tr").last().attr({"data-queryObject":JSON.stringify(thisRow)});
+        });
+        $("a.edit_query").click(function(event) {
+            $("#create_query_form input, #create_query_form textarea").val("");
+            var queryObject = JSON.parse($(this).closest("tr").attr("data-queryObject"));
+            var queryName = "";
+            forEach(queryObject, function(queryValue, queryKey) {
+               queryName = queryKey;
+               return false;
+            });
+            $("#queryName").addClass("uneditable-input").val(queryName);
+            if (queryObject.hasOwnProperty("sql")) $("#querySql").val(queryObject.sql);
+            forEach(queryObject[queryName], function(thisParamSet, setKey) {
+               if (thisParamSet.hasOwnProperty("label") && thisParamSet.hasOwnProperty("name")) {
+                   $("#param_label"+setKey).val(thisParamSet.label);
+                   $("#param_name"+setKey).val(thisParamSet.name);
+               }
+            });
+            $("#query_editor").addClass("edit_mode").modal("toggle");
+            return false;
         });
         $("a.remove_query").click(function(event) {
            removeQuery(JSON.parse($(this).closest("tr").attr("data-queryObject")));
@@ -413,9 +435,6 @@ var CallBox = function() {
             },
             success : function(data, textStatus, jqXHR) {},
             error : function(jqXHR, textStatus, errorThrown) {
-                console.log('status: '+textStatus);
-                console.log('errorThrown: '+errorThrown);
-                console.log(JSON.stringify(jqXHR));
                 var errorText = [];
                 forEach([textStatus, errorThrown], function(thisText) {
                     if (thisText.length > 0) errorText.push(thisText);
@@ -511,6 +530,7 @@ var removeQuery = function(queryObject) {
     var newUrl = false;
     forEach(queryObject, function(objectValue, objectKey) {
         newUrl = objectKey;
+        return false;
     });
     apiCaller.doCall({
         url : "/"+newUrl,
