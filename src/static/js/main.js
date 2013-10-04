@@ -123,30 +123,29 @@ var showData = function(rawData, dataUrl) {
         $("#reporting_display thead").append('<tr><th>Query <i class="icon-sort-down"></i></th><th colspan="2">Parameters <i class="icon-sort-down"></i></th><th></th></tr>');
         $("#reporting_display").addClass("js_sorTable");
         headersWritten = true;
-        forEach(processedData, function(thisRow) {
+        forEach(processedData, function(thisRow, rowId) {
             var newRow = '<tr>';
             var colIterator = 0;
-            forEach(thisRow, function(thisData, thisKey) {
-                newRow += '<td><a href="#" class="edit_query">'+makePrettyName(thisKey)+'</a></td>';
-                newRow += '<td>'
-                forEach(thisData, function(thisParam, thisIterator) {
-                    if (thisParam.hasOwnProperty("name") && thisParam.hasOwnProperty("label")) newRow += '<div class="controls"><input type="text" name="'+thisParam.name+'" placeholder="'+thisParam.label+'" /></div>';
-                });
-                newRow += '</td><td><a class="btn btn-primary js_executeQuery" href="'+thisKey+'">Execute Query</a></td><td class="remove_query_holder"><a href="#" class="remove_query"><i class="icon-remove-sign icon-2x"></i></a></td>';
+            newRow += '<td><a href="#" class="edit_query">'+makePrettyName(rowId)+'</a></td>';
+            newRow += '<td>'
+            var rowParams = (thisRow.hasOwnProperty("params")) ? forceArray(thisRow.params) : [];
+            forEach(rowParams, function(thisParam, thisIterator) {
+                if (thisParam.hasOwnProperty("name") && thisParam.hasOwnProperty("label")) newRow += '<div class="controls"><input type="text" name="'+thisParam.name+'" placeholder="'+thisParam.label+'" /></div>';
             });
-            $("#reporting_display tbody").append(newRow+'</tr>').find("tr").last().attr({"data-queryObject":JSON.stringify(thisRow)});
+            var queryRecord = {
+                "name" : rowId,
+                "params" : rowParams,
+                "sql" : thisRow.sql
+            }
+            newRow += '</td><td><a class="btn btn-primary js_executeQuery" href="'+rowId+'">Execute Query</a></td><td class="remove_query_holder"><a href="#" class="remove_query"><i class="icon-remove-sign icon-2x"></i></a></td>';
+            $("#reporting_display tbody").append(newRow+'</tr>').find("tr").last().attr({"data-queryObject":JSON.stringify(queryRecord)});
         });
         $("a.edit_query").click(function(event) {
             $("#create_query_form input, #create_query_form textarea").val("");
             var queryObject = JSON.parse($(this).closest("tr").attr("data-queryObject"));
-            var queryName = "";
-            forEach(queryObject, function(queryValue, queryKey) {
-               queryName = queryKey;
-               return false;
-            });
-            $("#queryName").addClass("uneditable-input").val(queryName);
+            $("#queryName").addClass("uneditable-input").val(queryObject.name);
             if (queryObject.hasOwnProperty("sql")) $("#querySql").val(queryObject.sql);
-            forEach(queryObject[queryName], function(thisParamSet, setKey) {
+            forEach(queryObject.params, function(thisParamSet, setKey) {
                if (thisParamSet.hasOwnProperty("label") && thisParamSet.hasOwnProperty("name")) {
                    $("#param_label"+setKey).val(thisParamSet.label);
                    $("#param_name"+setKey).val(thisParamSet.name);
@@ -527,13 +526,8 @@ var AlertBox = function() {
 };
 
 var removeQuery = function(queryObject) {
-    var newUrl = false;
-    forEach(queryObject, function(objectValue, objectKey) {
-        newUrl = objectKey;
-        return false;
-    });
     apiCaller.doCall({
-        url : "/"+newUrl,
+        url : "/"+queryObject.name,
         settings : {
             type : "DELETE",
             success : function(data, textStatus, jqXHR) {
