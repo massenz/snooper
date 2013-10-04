@@ -4,8 +4,8 @@ Snooper - a DB query execution framework
 
 :Date: 2013-07-11
 :Author: M. Massenzio
-:Version: 0.2
-:Updated: 2013-08-13
+:Version: 0.3
+:Updated: 2013-10-03
 
 Use Case
 --------
@@ -120,58 +120,10 @@ the query literal would be incorrectly interpreted as one of the query's positio
 Promotion Codes
 +++++++++++++++
 
-A special case is the use of the script to generate *promotion codes* as defined in the
-specification_ in which case the arguments used are as follows::
+**Snooper** can be used to create `Promotion Codes`_ too: please see the documentation_
 
-    --coupons NUM           number of coupons to be generated
-    --provider PROVIDER     name of the Service Provider for the coupons
-    --cloud CLOUD           name of the Cloud Target for the coupons
-    --out FILE              a file that will contain a promotion code per line (generated)
-
-This can only be used with a configuration option that uses the credentials of a user that is
-granted ``UPDATE`` priviliges to the ``PROMOTION_CODES`` table (see `Connection parameters`_).
-
-.. _specification : https://github.com/RiverMeadow/encloud/blob/develop/docs/coupons.rst
-
-An example invocation would be::
-
-    python snooper.py --coupons=3 --provider=VMWare --cloud=vcloudTarget \
-        --out=/Users/marco/coupons.txt --conf=snooper.conf --env=dev --host=10.10.121.99
-
-Both the ``provider`` and the ``cloud`` **MUST** exist in the database for the coupons to be
-successfully generated.
-
-To get all service providers available, use::
-
-    python snooper.py --conf snooper.conf --host 10.10.121.99 --env dev \
-            "SELECT * FROM ORGANIZATIONS WHERE TYPE='SERVICE_PROVIDER'"
-
-and similarly for cloud targets::
-
-    python src/snooper.py --conf snooper.conf --host 10.10.121.99 --env dev \
-            "SELECT name FROM CLOUD_TARGETS"
-
-To get the cloud targets available only for a given service provider (whose ``name`` was retrieved
-with the query above), use this query::
-
-    "SELECT t.name FROM CLOUD_TARGETS t, ORGANIZATIONS o WHERE t.provider_ref = o.uuid \
-            AND o.name='name' AND o.type='SERVICE_PROVIDER'"
-
-Promotion Codes REST API
-++++++++++++++++++++++++
-
-They can be created using the following endpoint and parameters::
-
-    POST /codes/<int:count>
-
-    {
-        "created_by": "1xa@rivermeadow.com",
-        "cloud_type": "VCLOUD",
-        "cloud": "vcloudTarget",
-        "provider": "VMWare"
-    }
-
-This will return a CSV file with a list of CODES.
+.. _Promotion Codes: https://github.com/RiverMeadow/encloud/blob/develop/docs/coupons.rst
+.. _documentation: https://github.com/massenz/snooper/blob/develop/promotion_codes.rst
 
 Connection parameters
 ^^^^^^^^^^^^^^^^^^^^^
@@ -185,6 +137,7 @@ by *environments*, as in::
     db = mydb
     user = uzer
     password = duba
+    host = 10.10.121.99
 
     [prod]
     db = pencloud
@@ -193,8 +146,8 @@ by *environments*, as in::
 
 Use the ``--env`` command-line arg to specify a given environment (``dev`` is used by default).
 
-**Note** the ``hostname`` **cannot** be specified via the configuration file, but **must** always
-be specified via the ``--host`` command-line argument.
+**Note** the ``hostname`` **can** be specified via the configuration file, or via the ``--host``
+command-line argument (if specified in both, CLI option takes precedence).
 
 Drill down
 ^^^^^^^^^^
@@ -206,7 +159,7 @@ Taking as an example this query::
 
     "queries": {
         "get_user_by_role": {
-            "sql": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=?",
+            "sql": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=%(uuid)s",
             "drill_down": {
                 "uuid": "/api/1/query/get_user_by_id/id/$"
             }
@@ -278,7 +231,7 @@ the client needs to do, is to substitute the ``$`` placeholder with the column v
 REST API
 --------
 
-The server will provide a minimalist API wrapper around the script functionality, returning
+The server will provide a full API wrapper around the script functionality, returning
 the response in JSON::
 
 Get all queries
@@ -299,15 +252,24 @@ Response::
 Execute a query
 ^^^^^^^^^^^^^^^
 
-The pattern is ``query/<query_name/<param/value in pairs>`` where there can be an arbitrary number of
-*{param, value}* pairs, following the query's name: the parameters' values will be substituted in the
-query.
+::
+
+    query/<query_name/<param_1>/<value_1>/<param_2>/<value_2>
+
+
+There can be an arbitrary number of *{param, value}* pairs, following the query's name:
+the parameters' values will be substituted in the query according to the ``%(param)s`` patterns.
+
 
 Given::
 
     "get_user_by_role": {
-            "sql": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=?",
-            ...
+            "sql": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=%(role)s",
+            "params": [{
+                "name": "role",
+                "label": "Role"
+            }]
+    }
 
 We can execute the following request::
 
@@ -362,13 +324,30 @@ Create a new query
 
 ::
 
-    POST /api/1/query
+    POST /api/1/query/my_get_user
 
     {
-        "name": "my_get_user",
-        "sql": "SELECT USERNAME, PASSWORD FROM USER WHERE ID=?",
-        "num_args": 1
+        "sql": "SELECT last_name, email_address FROM USERS WHERE UUID=%(id)s AND first_name=%(name)s",
+        "drill_down": {
+            "email_address": "/api/1/query/get_user_by_email/email/$"
+        },
+        "params": [
+            {
+                "label": "User UUID",
+                "name": "id"
+            },
+            {
+                "label": "First Name",
+                "name": "name"
+            }
+        ]
     }
+
+Response::
+
+    201 CREATED
+
+    <no body>
 
 Modify an existing query
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -382,6 +361,19 @@ Modify an existing query
         "sql": "SELECT FIRST_NAME, LAST_NAME FROM USER WHERE ID=?",
         "num_args": 1
     }
+
+Delete a query
+^^^^^^^^^^^^^^
+
+::
+
+    DELETE /api/1/query/query_to_delete
+
+Response::
+
+    205 RESET CONTENT
+
+    <empty body>
 
 Get a query details
 ^^^^^^^^^^^^^^^^^^^

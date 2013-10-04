@@ -17,12 +17,13 @@ import uuid
 
 
 #: Snooper release no.
-VERSION = '0.14'
+VERSION = '1.0a'
 
 #: Default Postgresql listening port
 DEFAULT_PORT = 5432
 
 
+# TODO: logging right now is extremely basic, needs to be improved
 class DbSnooper(object):
     """ This class enables execution of arbitrary queries against a given DB
 

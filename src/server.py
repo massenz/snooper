@@ -43,6 +43,38 @@ if not conf.debug:
     app.logger.addHandler(logging.StreamHandler())
 
 
+# TODO: understand why this cannot be a @staticmethod inside Routes - Python doesn't like it
+def build_from(*args):
+        """ Builds a `default` route from a list of path segments
+
+            Usage: build_from('query', '<query>') will build '/api/1/query/<query>'
+                assuming ``REST_BASE_URL`` is defined as '/api/1'
+
+        @param args: a sequence of segments to build the route from
+        @type args: sequence
+        @return: a full API route (eg '/api/1/query/<query>')
+        @rtype: string
+        """
+        base = [REST_BASE_URL]
+        base.extend(args)
+        return '/'.join(base)
+
+
+class Routes(object):
+    """ A single place where to put all the routes for the Flask framework
+
+        I still have issues with the way Flask handles routes (IMO JAX-RS does a much better job
+        of keeping the routes separated) but at least we can keep them there in one place.
+    """
+    TEST = build_from('test')
+    QUERY_ALL = build_from('query')
+    QUERY = build_from('query', '<query>')
+    QUERY_WITH_ARGS = build_from('query', '<query>', '<path:args>')
+    ERROR = build_from('error', '<title>', '<message>')
+    INFO = build_from('info')
+    INFO_QUERY = build_from('info', '<query>')
+
+
 @app.errorhandler(404)
 def redirect_to_ui(error):
     return render_template('index.html')
@@ -50,24 +82,25 @@ def redirect_to_ui(error):
 
 @app.errorhandler(Exception)
 def handle_ex(exception):
+    # TODO: have a separate exception log
     app.logger.exception(exception)
     return render_error('Application Error', str(exception))
 
 
-@app.route('/test')
+@app.route(Routes.TEST)
 def test():
     """Used to test correct re-routing of application exceptions"""
     raise RuntimeError("this was an error")
 
 
-@app.route(REST_BASE_URL)
+@app.route(Routes.QUERY_ALL)
 def get_all():
     """Gets all existing queries"""
     return json.dumps({"queries": get_all_queries()})
 
 
-@app.route('/'.join([REST_BASE_URL, '<query>', '<path:args>']))
-@app.route('/'.join([REST_BASE_URL, '<query>']), methods=['GET', 'POST', 'PUT', 'DELETE'])
+@app.route(Routes.QUERY_WITH_ARGS)
+@app.route(Routes.QUERY, methods=['GET', 'POST', 'PUT', 'DELETE'])
 def query_resource(query, args=None):
     if request.method in ['POST', 'PUT']:
         return upsert_query(query, is_new=(request.method == 'POST'))
@@ -79,7 +112,7 @@ def query_resource(query, args=None):
         return ApiException('Method {} not implemented'.format(request.method))
 
 
-@app.route('/error/<title>/<message>', methods=['POST'])
+@app.route(Routes.ERROR, methods=['POST'])
 def post_error_message(title, message):
     title = title.replace('+', ' ')
     message = message.replace('+', ' ')
@@ -93,7 +126,7 @@ def generate_error():
     raise RuntimeError("this was an auto-generated error")
 
 
-@app.route('/'.join([REST_BASE_URL, '<query>', 'metadata']))
+@app.route(Routes.INFO_QUERY)
 def get_query_info(query):
     """Returns all info about a query """
     queries = snooper.parse_queries(conf.queries)
@@ -103,7 +136,7 @@ def get_query_info(query):
         abort(404)
     return json.dumps(queries.get(query))
 
-
+@app.route(Routes.INFO)
 def get_all_queries():
     all_queries = snooper.parse_queries(conf.queries)
     return all_queries
@@ -119,6 +152,7 @@ def delete_query(query):
     app.logger.debug('Query {} removed'.format(query))
     with open(conf.queries, 'w') as fd:
         json.dump({"queries": queries}, fd, sort_keys=True, indent=4, separators=(',', ': '))
+    # TODO: return a 205 RESET CONTENT instead
     return json.dumps({'result': 'removed'})
 
 
@@ -140,6 +174,7 @@ def upsert_query(query, is_new=False):
     app.logger.debug('Query {} created/updated: {}'.format(query, queries[query]['sql']))
     with open(conf.queries, 'w') as fd:
         json.dump({"queries": queries}, fd, sort_keys=True, indent=4, separators=(',', ': '))
+    # TODO: return a 201 CREATED code instead or 200 OK (for a PUT)
     return json.dumps({'result': 'success'})
 
 
