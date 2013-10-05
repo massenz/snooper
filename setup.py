@@ -37,7 +37,7 @@ def get_requirements(filename='requirements.txt'):
     return requirements
 
 
-def to_EGG(dir):
+def to_egg(dir):
     return os.path.join('EGG-INFO', 'scripts', dir)
 
 
@@ -52,7 +52,7 @@ setuptools.setup(
              'scripts/snooper-webui',
              'src/server.py',
              'src/snooper.py'],
-    data_files=get_data_files([('src/static', to_EGG('static')),
-                               ('src/templates', to_EGG('templates')),
-                               ('src/ui', to_EGG('ui'))])
+    data_files=get_data_files([('src/static', to_egg('static')),
+                               ('src/templates', to_egg('templates')),
+                               ('src/ui', to_egg('ui'))])
 )

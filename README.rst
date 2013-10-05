@@ -357,10 +357,23 @@ Modify an existing query
     PUT /api/1/query/my_get_user
 
     {
-        "name": "my_get_user",
-        "sql": "SELECT FIRST_NAME, LAST_NAME FROM USER WHERE ID=?",
-        "num_args": 1
+        "sql": "SELECT FIRST_NAME, LAST_NAME FROM USER WHERE ID=%(id)s",
+        "params": [
+            {
+                "label": "User UUID",
+                "name": "id"
+            }
+        ]
     }
+
+Response::
+
+    200 OK
+
+    <no body>
+
+This will return a ``404 NOT FOUND`` if the named query does not exist or a
+``406 BAD REQUEST`` if the format of the body does not meet the specification.
 
 Delete a query
 ^^^^^^^^^^^^^^
@@ -380,22 +393,106 @@ Get a query details
 
 ::
 
-    GET /api/1/query/get_user/details
+    GET /api/1/info/<query>
 
 Response::
 
+    200 OK
+
+    JSON full body of the query
+
+For example, given this entry in the ``queries.json`` file::
+
+    {
+        "get_user": {
+            "sql": "SELECT FIRST_NAME, LAST_NAME FROM USER WHERE ID=%(id)s",
+            "params": [
+                {
+                    "label": "User UUID",
+                    "name": "id"
+                }
+            ]
+            "drill_down": {
+                "FIRST_NAME": "/api/1/query/get_user_by_name/name/$"
+            }
+        },
+        ... other queries
+    }
+
+The following request::
+
+    GET /api/1/info/get_user
+
+would get back::
+
     {
         "name": "get_user"
-        "query": "SELECT uuid,email_address,first_name,last_name FROM users WHERE role=?",
-        "num_args": 1
+        "sql": "SELECT FIRST_NAME, LAST_NAME FROM USER WHERE ID=%(id)s",
+        "params": [
+            {
+                "label": "User UUID",
+                "name": "id"
+            }
+        ]
+        "drill_down": {
+            "FIRST_NAME": "/api/1/query/get_user_by_name/name/$"
+        }
     }
+
+Get ALL queries' details
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+    GET /api/1/info
+
+Response::
+
+    200 OK
+
+    JSON full bodies of all the queries
+
+See above_ for an example.
+
+.. _above: Get a query details
+
 
 Installation
 ------------
 
+Build
+^^^^^
+
+**Snooper** is packaged as an EGG, to build::
+
+    python setup.py bdist_egg
+
+this will generate a ``snooper-x.x.xxx-py2.7.egg`` where ``x.x.xxx`` is the release
+version no. (set in ``src/snooper.py`` ``VERSION``).
+
+Installation
+^^^^^^^^^^^^
+
+We recommend the use of ``virtualenv`` and once activated, it's just a matter of running::
+
+    pip install ./snooper-x.x.xxx-py2.7.egg
+
+**NOTE** this currently does not work due to some mysterious version error with ``pip``
+
+**Do this instead**
+
+1. build a virtual environment and activate it
+2. obtain the latest ``requirements.txt`` from the github repo
+3. run ``pip install -r requirements.txt``
+4. download the ``snooper-x.x.xxx-py2.7.egg`` file from our repo
+5. run ``easy_install snooper-x.x.xxx-py2.7.egg``
+
+It's ugly, but no one ever said that Python had to be as good as Java, after all.
+
+# TODO: update the above with actual locations once I finalize them
 
 How-To configure PostgreSQL
----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Follow the instructions here_
 

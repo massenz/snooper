@@ -32,7 +32,7 @@ from werkzeug.local import LocalProxy
 
 
 SECRET_KEY = '#3K5h43Hl53&s0Bod62y$%C34t6oDv3NN47Oz24GT7$3TFJWDS5yX7E7&a4994e0'
-REST_BASE_URL = '/api/1/query'
+REST_BASE_URL = '/api/1'
 
 conf = snooper.parse_args()
 app = Flask('snooper')
@@ -95,8 +95,17 @@ def test():
 
 @app.route(Routes.QUERY_ALL)
 def get_all():
-    """Gets all existing queries"""
-    return json.dumps({"queries": get_all_queries()})
+    """ Gets all existing queries names
+
+        @return: a list of all queries in the "queries" key:
+            {"queries": [ "get_user", "get_migrations", .... ]}
+        @rtype: string
+    """
+    all_queries = snooper.parse_queries(conf.queries)
+    queries = []
+    for query in all_queries:
+        queries.append(query)
+    return json.dumps({"queries": queries})
 
 
 @app.route(Routes.QUERY_WITH_ARGS)
@@ -134,12 +143,18 @@ def get_query_info(query):
         raise ApiException('No queries found')
     elif query not in queries:
         abort(404)
-    return json.dumps(queries.get(query))
+    result = queries.get(query)
+    result['name'] = query
+    return json.dumps(result)
 
 @app.route(Routes.INFO)
 def get_all_queries():
     all_queries = snooper.parse_queries(conf.queries)
-    return all_queries
+    queries = []
+    for name, query in all_queries.iteritems():
+        query['name'] = name
+        queries.append(query)
+    return json.dumps(queries)
 
 
 def delete_query(query):
