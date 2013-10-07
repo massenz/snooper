@@ -34,7 +34,7 @@ var showData = function(rawData, dataUrl) {
         if (rawData.hasOwnProperty("drill_down") && (rawData.drill_down !== null)) drillDown = rawData.drill_down;
     } else {
         processedData = rawData;
-        directiveElements.unshift("All Queries");
+        directiveElements.push("All Queries");
         showQueries = true;
     }
 
@@ -87,7 +87,7 @@ var showData = function(rawData, dataUrl) {
                 }
                 var successMessage = $("#query_editor").hasClass("edit_mode") ? "Updated" : "Created"
                 apiCaller.doCall({
-                    url : "/"+makeSafeName($("#queryName").val().split(" ").join("_")),
+                    url : 'query/'+makeSafeName($("#queryName").val().split(" ").join("_")),
                     settings : {
                         type : $("#query_editor").hasClass("edit_mode") ? "PUT" : "POST",
                         processData : false,
@@ -531,7 +531,7 @@ var AlertBox = function() {
 
 var removeQuery = function(queryObject) {
     apiCaller.doCall({
-        url : "/"+queryObject.name,
+        url : "query/"+queryObject.name,
         settings : {
             type : "DELETE",
             success : function(data, textStatus, jqXHR) {
