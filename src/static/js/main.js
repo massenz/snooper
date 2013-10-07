@@ -32,8 +32,8 @@ var showData = function(rawData, dataUrl) {
     if (rawData.hasOwnProperty("results")) {
         processedData = rawData.results;
         if (rawData.hasOwnProperty("drill_down") && (rawData.drill_down !== null)) drillDown = rawData.drill_down;
-    } else if (rawData.hasOwnProperty("queries")) {
-        processedData = rawData.queries;
+    } else {
+        processedData = rawData;
         directiveElements.unshift("All Queries");
         showQueries = true;
     }
@@ -43,7 +43,7 @@ var showData = function(rawData, dataUrl) {
     }
 
     if (directiveElements.length > 0) {
-        var statusKey = makePrettyName(directiveElements[0]);
+        var statusKey = makePrettyName(directiveElements[1]);
         $("ul.nav").html('<li><a href="#">'+statusKey+'</a></li>');
         $("title").html('Snooper - '+statusKey);
         previousPage = memoryToObject("previous_page");
@@ -126,18 +126,18 @@ var showData = function(rawData, dataUrl) {
         forEach(processedData, function(thisRow, rowId) {
             var newRow = '<tr>';
             var colIterator = 0;
-            newRow += '<td><a href="#" class="edit_query">'+makePrettyName(rowId)+'</a></td>';
+            newRow += '<td><a href="#" class="edit_query">'+makePrettyName(thisRow.name)+'</a></td>';
             newRow += '<td>'
             var rowParams = (thisRow.hasOwnProperty("params")) ? forceArray(thisRow.params) : [];
             forEach(rowParams, function(thisParam, thisIterator) {
                 if (thisParam.hasOwnProperty("name") && thisParam.hasOwnProperty("label")) newRow += '<div class="controls"><input type="text" name="'+thisParam.name+'" placeholder="'+thisParam.label+'" /></div>';
             });
             var queryRecord = {
-                "name" : rowId,
+                "name" : thisRow.name,
                 "params" : rowParams,
                 "sql" : thisRow.sql
             }
-            newRow += '</td><td><a class="btn btn-primary js_executeQuery" href="'+rowId+'">Execute Query</a></td><td class="remove_query_holder"><a href="#" class="remove_query"><i class="icon-remove-sign icon-2x"></i></a></td>';
+            newRow += '</td><td><a class="btn btn-primary js_executeQuery" href="'+thisRow.name+'">Execute Query</a></td><td class="remove_query_holder"><a href="#" class="remove_query"><i class="icon-remove-sign icon-2x"></i></a></td>';
             $("#reporting_display tbody").append(newRow+'</tr>').find("tr").last().attr({"data-queryObject":JSON.stringify(queryRecord)});
         });
         $("a.edit_query").click(function(event) {
@@ -219,9 +219,13 @@ var UrlBox = function() {
 
     this.getUrlDirective = function(theUrl) {
         var theUrl = theUrl || that.workingUrl;
-        var defaultDirective = "";
+        var defaultDirective = "info";
         var theDirective = theUrl.substring(that.rootUrl.length);
-        if (theDirective.length <= 1) theDirective = defaultDirective;
+        if (theDirective.length <= 1) {
+            theDirective = defaultDirective;
+        } else {
+            theDirective = "query" + theDirective;
+        }
         return theDirective;
     }
 
@@ -419,7 +423,7 @@ var TableBox = function() {
 var apiCaller;
 var CallBox = function() {
     var that = this;
-    this.baseUrl = location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '')+'/api/1/query';
+    this.baseUrl = location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '')+'/api/1/';
 
     /**
         API caller.
