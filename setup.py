@@ -2,7 +2,6 @@
 
 __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
 
-
 import os
 import setuptools
 
@@ -25,7 +24,9 @@ def get_data_files(source_dest_pairs):
             dir_files = []
             for file_ in files:
                 dir_files.append(os.path.join(src_root, file_))
+            print '>>>>', dest_root, ' >> ', dir_files
             data_files.append((dest_root, dir_files))
+            print '---'
     return data_files
 
 
@@ -33,12 +34,18 @@ def get_requirements(filename='requirements.txt'):
     requirements = []
     with open(filename) as reqs:
         for line in reqs.readlines():
-            requirements.append(line.strip())
+            if not line.strip().startswith('#'):
+                requirements.append(line.strip())
     return requirements
 
 
-def to_egg(dir):
-    return os.path.join('EGG-INFO', 'scripts', dir)
+def to_egg(dest_dir):
+    """ Creates a path that is compatible with the EGG format for the static and template files
+
+    @param dest_dir: the leaf-node directory for the file
+    @return: the full path, relative to the EGG root for the static files
+    """
+    return os.path.join('EGG-INFO', 'scripts', dest_dir)
 
 
 setuptools.setup(
@@ -48,11 +55,14 @@ setuptools.setup(
     packages=setuptools.find_packages('src', exclude=['*.test']),
     zip_safe=False,
     install_requires=get_requirements(),
-    scripts=['scripts/snooper',
-             'scripts/snooper-webui',
-             'src/server.py',
-             'src/snooper.py'],
+    scripts=['src/server.py',
+             'src/snooper.py',
+             'src/promo_codes.py'],
+    entry_points={'console_scripts': [
+        'snooper = snooper:main',
+        'snooper-webui = server:run_server',
+        'promocodes = promo_codes:run_server']
+    },
     data_files=get_data_files([('src/static', to_egg('static')),
-                               ('src/templates', to_egg('templates')),
-                               ('src/ui', to_egg('ui'))])
+                               ('src/templates', to_egg('templates'))])
 )

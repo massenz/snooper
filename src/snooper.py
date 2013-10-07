@@ -17,7 +17,7 @@ import uuid
 
 
 #: Snooper release no.
-VERSION = '1.0a0'
+VERSION = '1.0a1'
 
 #: Default Postgresql listening port
 DEFAULT_PORT = 5432

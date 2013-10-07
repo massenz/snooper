@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 #
 # Copyright (c) 2013 RiverMeadow Software Inc. All rights reserved.
-import urllib
-
 
 __author__ = 'Marco Massenzio (marco@rivermeadow.com)'
 
@@ -19,20 +17,22 @@ import flask
 from flask import (Flask,
                    abort,
                    redirect,
-                   session,
-                   send_file,
                    make_response,
                    request, url_for)
-from flask.ext import restful
-from flask.ext.restful import reqparse
 import json
 import logging
 import snooper
+import urllib
 from werkzeug.local import LocalProxy
 
 
 SECRET_KEY = '#3K5h43Hl53&s0Bod62y$%C34t6oDv3NN47Oz24GT7$3TFJWDS5yX7E7&a4994e0'
 REST_BASE_URL = '/api/1'
+
+
+class ApiException(Exception):
+    pass
+
 
 conf = snooper.parse_args()
 app = Flask('snooper')
@@ -220,45 +220,6 @@ def run_query(query, params=None):
     return res
 
 
-class PromotionCodesResource(restful.Resource):
-    REQUEST_ARGS = ['cloud', 'provider', 'cloud_type', 'created_by']
-
-    def __init__(self):
-        parser = reqparse.RequestParser()
-        for arg in PromotionCodesResource.REQUEST_ARGS:
-            parser.add_argument(arg, location='form')
-        self._parser = parser
-
-    @staticmethod
-    def _check_args_exist_in_request(args):
-        for required in PromotionCodesResource.REQUEST_ARGS:
-            if not required in args:
-                app.logger.error(
-                    "Argument {} not found in the request arguments".format(required, ))
-                return False
-        return True
-
-    def post(self, count):
-        args = self._parser.parse_args()
-        if not PromotionCodesResource._check_args_exist_in_request(args):
-            app.logger.error("All required args should be passed in the request, "
-                             "found: {}".format(args))
-            return render_error('Missing Argument',
-                                'All required args [{}] should be passed in the request, '
-                                'only {} found'.format(PromotionCodesResource.REQUEST_ARGS, args))
-        try:
-            mgr = snooper.CouponsManager(args['provider'],
-                                         args['cloud'],
-                                         args['cloud_type'],
-                                         args['created_by'], db=db_conn)
-            filename = '/tmp/coupons.csv'
-            mgr.make_coupons(count, filename=filename)
-            return send_file(filename, as_attachment=True)
-        except Exception as e:
-            app.logger.error(e)
-            return render_error("Error creating codes", e.message)
-
-
 def render_error(title, message):
     """ Helper method to just render an error page
     """
@@ -295,8 +256,8 @@ def get_db():
     """
     db = getattr(flask.g, '_database', None)
     if not db:
-        conf = snooper.parse_args()
-        flask.current_app._logger.info("Opening connection to DB: {}".format(conf.conf))
+        _conf = snooper.parse_args()
+        flask.current_app.logger.info("Opening connection to DB: {}".format(_conf.conf))
         db = snooper.DbSnooper(conf=snooper.config_connection(conf))
         flask.g._database = db
     return db
@@ -305,29 +266,8 @@ def get_db():
 db_conn = LocalProxy(get_db)
 
 
-def build_routes():
-    """ Sets up the routes for the REST API.
-
-        @param api: the Flask REST object to add routes to
-        @type api: L{restful.Api}
-    """
-    api = restful.Api(app)
-    PromotionCodesResource._conf = conf
-    PromotionCodesResource._logger = app.logger
-    api.add_resource(PromotionCodesResource, '/'.join(['', 'codes', '<int:count>']))
-
-
-class ApiException(Exception):
-    pass
-
-
-def run_server():
-    """ The main server app, starts up Flask, sets up the routes and handles requests
-    """
-
-    build_routes()
-    app.run(debug=conf.debug, host='0.0.0.0')
-
+def run_server(host='0.0.0.0', port=5000):
+    app.run(debug=conf.debug, host=host, port=port)
 
 if __name__ == '__main__':
     run_server()
