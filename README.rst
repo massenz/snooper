@@ -426,7 +426,7 @@ The following request::
 would get back::
 
     {
-        "name": "get_user"
+        "name": "get_user",
         "sql": "SELECT FIRST_NAME, LAST_NAME FROM USER WHERE ID=%(id)s",
         "params": [
             {
