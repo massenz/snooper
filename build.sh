@@ -1,4 +1,4 @@
 #!/bin/bash
 
-export PYTHONPATH=src && python setup.py bdist_egg
+export PYTHONPATH=.:src && python2.7 setup.py bdist_egg
 
