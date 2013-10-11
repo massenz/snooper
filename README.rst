@@ -79,8 +79,6 @@ These can be seen using the ``--help`` option::
       --provider PROVIDER   The name of the Service Provider for the coupons
       --cloud CLOUD         The name of the Cloud Target for the promotion codes
 
-
-
 If the query to run has named arguments, then those should be passed in (for now, I will only
 support `positional` arguments).
 
