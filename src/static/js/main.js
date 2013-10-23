@@ -1,5 +1,7 @@
 var previousPage = false;
 var allQueries = false;
+var thisQuery = false;
+var drillDown = {};
 
 /** Code to be invoked when page assets have finished loading. */
 var pageReady = function() {
@@ -37,8 +39,6 @@ var showData = function(rawData, dataUrl) {
 
     var directiveElements = urlEngine.getUrlDirective().substring(1).split("/");
 
-    var drillDown = {};
-
     var processedData = [];
     var showQueries = false;
     if (rawData.hasOwnProperty("results")) {
@@ -57,6 +57,7 @@ var showData = function(rawData, dataUrl) {
         directiveElements.push("All Queries");
         showQueries = true;
     }
+    thisQuery = processedData;
 
     var makePrettyStatus = function(theString) {
         if (typeof theString === "string") return makePrettyName(theString.toLowerCase().replace("completed_",""));
@@ -70,7 +71,7 @@ var showData = function(rawData, dataUrl) {
         objectToMemory("previous_page", {"title":statusKey, "url":document.location.href});
     }
 
-    $("ul.nav").append('<li><a href="mailto:?subject=reporting&body='+document.location.href+'"><i class="icon-cloud-upload"></i> '+processedData.length+' Total</a></li>');
+    $("ul.nav").append('<li><a href="mailto:?subject=reporting&body='+document.location.href+'"><i class="fa fa-cloud-upload"></i> '+processedData.length+' Total</a></li>');
 
     var headersWritten = false;
 
@@ -142,7 +143,7 @@ var showData = function(rawData, dataUrl) {
             $("#create_query_form input").val("");
             aceEditor.setValue("");
         });
-        $("#reporting_display thead").append('<tr><th>Query </th><th colspan="2">Parameters </th><th></th></tr>');
+        $("#reporting_display thead").append('<tr><th>Query</th><th colspan="2">Parameters</th><th></th></tr>');
         $("#reporting_display").addClass("js_sorTable");
         headersWritten = true;
         forEach(processedData, function(thisRow, rowId) {
@@ -159,7 +160,7 @@ var showData = function(rawData, dataUrl) {
                 "params" : rowParams,
                 "sql" : thisRow.sql
             }
-            newRow += '</td><td><a class="btn btn-primary js_executeQuery" href="'+thisRow.name+'">Execute Query</a></td><td class="remove_query_holder"><a href="#" class="remove_query"><i class="icon-remove-sign icon-2x"></i></a></td>';
+            newRow += '</td><td><a class="btn btn-primary js_executeQuery" href="'+thisRow.name+'">Execute Query</a></td><td class="remove_query_holder"><a href="#" class="remove_query"><i class="fa fa-times-circle fa-2x"></i></a></td>';
             $("#reporting_display tbody").append(newRow+'</tr>').find("tr").last().attr({"data-queryObject":JSON.stringify(queryRecord)});
         });
         setUpQueryLinks();
@@ -191,7 +192,10 @@ var showData = function(rawData, dataUrl) {
                 $("#reporting_display tbody").append(newRow+'</tr>');
                 if (!headersWritten) {
                     $("#reporting_display").addClass("js_sorTable");
-                    $("#reporting_display thead").append('<tr><th>'+rowKeys.join(' </th><th>')+' </th></tr>');
+                    $("#reporting_display thead").append('<tr></tr>');
+                    forEach(rowKeys, function(thisKey) {
+                        $("#reporting_display thead tr").first().append(wrapWithTag(thisKey+" "+wrapWithTag('<i class="fa fa-caret-down"></i>', "a", {"href":"#", "class":"dropdown-toggle"}), "th", {"data-columnKey":thisKey}));
+                    });
                     headersWritten = true;
                 }
             });
@@ -201,6 +205,11 @@ var showData = function(rawData, dataUrl) {
         }
     }
     tableEngine.setUpTableSort($("#reporting_display"));
+
+    $("#reporting_display a.dropdown-toggle").click(function(event) {
+       doDrillDownMenu($(this));
+       return false;
+    });
 
     $("a.js_executeQuery").click(function(event) {
        var newDirective = urlEngine.rootUrl + "/" + $(this).attr("href");
@@ -552,6 +561,39 @@ var removeQuery = function(queryObject) {
             }
         }
     });
+}
+
+var doDrillDownMenu = function(theLink) {
+    var parentCell = $(theLink).closest("th");
+    var currentMenu = $(parentCell).find("div.dropdown");
+    if ($(currentMenu).length > 0) {
+        $(currentMenu).remove();
+    } else {
+        var linkKey = $(parentCell).attr("data-columnKey") || false;
+        if (linkKey) {
+            $(parentCell).append('<div class="dropdown"><ul class="dropdown-menu" role="menu"></ul></div>');
+            var menuOptions = [{
+                "name" : "Create Drilldown",
+                "call" : "createDrilldown"
+            }];
+            if (drillDown.hasOwnProperty(linkKey)) {
+                menuOptions = [
+                    {
+                        "name" : "Edit Drilldown",
+                        "call" : "editDrilldown"
+                    },
+                    {
+                        "name" : "Delete Drilldown",
+                        "call" : "deleteDrilldown"
+                    }
+                ];
+            }
+            var currentMenu = $(parentCell).find("ul.dropdown-menu").first();
+            forEach(menuOptions, function(thisOption) {
+                $(currentMenu).append(wrapWithTag(wrapWithTag(thisOption.name, "a", {"href":"#", "tabindex":"-1", "class":"js_"+thisOption.call}), "li"));
+            });
+        }
+    }
 }
 
 /** Utility Functions. */

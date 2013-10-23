@@ -70,7 +70,6 @@ a.remove_query {
     font-size: smaller;
 }
 .js_sorTable th {
-/*     background-color: #becfde; */
     cursor: pointer;
     white-space: nowrap;
     -webkit-touch-callout: none;
@@ -86,6 +85,9 @@ a.remove_query {
 }
 .js_sorTable th.sorting_by i {
     color: #000;
+}
+.js_sorTable th a.dropdown-toggle i {
+    color: inherit;
 }
 .js_sorTable th:last-child {
     text-align: right;
