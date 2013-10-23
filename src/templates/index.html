@@ -50,6 +50,7 @@
                         <label class="control-label" for="querySql">SQL</label>
                         <div class="controls">
                             <textarea rows="7" id="querySql" class="input-xxlarge" required="required"></textarea>
+                            <div id="aceEditor"></div>
                             <span class="help-inline">In your SQL query, wrap each parameter's name in %(name)s, making sure the name matches, including capitalization, without spaces and _ allowed, eg: user_name -> %(user_name)s)</span>
                         </div>
                     </div>
@@ -107,6 +108,7 @@
                 "font-awesome.min.css",
                 "main.css",
                 "bootstrap.min.js",
+                "src-min-noconflict/ace.js",
                 "main.js"
             ];
 

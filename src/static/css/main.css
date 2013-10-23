@@ -34,6 +34,16 @@ a.remove_query {
     text-align: center;
 }
 
+#aceEditor {
+    position: absolute;
+    top: 64px;
+    right: 0;
+    bottom: 0;
+    left: 194px;
+    height: 151px;
+    width: 546px;
+}
+
 .alert_wrapper_inner {
     margin: 0 auto;
     width: 562px;

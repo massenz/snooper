@@ -2,11 +2,13 @@ var previousPage = false;
 
 /** Code to be invoked when page assets have finished loading. */
 var pageReady = function() {
+
     /** Instantiate Objects */
     urlEngine = new UrlBox();
     apiCaller = new CallBox();
     tableEngine = new TableBox();
     alertEngine = new AlertBox();
+    setUpAce();
 
     apiCaller.doCall({
         url : urlEngine.getUrlDirective(),
@@ -17,6 +19,15 @@ var pageReady = function() {
         }
     });
 };
+
+/** Set up Ace editor */
+var aceEditor;
+var setUpAce = function() {
+    aceEditor = ace.edit("aceEditor");
+    aceEditor.setTheme("ace/theme/textmate");
+    aceEditor.getSession().setMode("ace/mode/sql");
+    aceEditor.getSession().setUseWrapMode(true);
+}
 
 var showData = function(rawData, dataUrl) {
     $("#loading_icon").hide();
@@ -56,14 +67,15 @@ var showData = function(rawData, dataUrl) {
 
     if (showQueries) {
         $("#create_query").show().click(function(event) {
-            $("#create_query_form input, #create_query_form textarea").val("");
+            $("#create_query_form input").val("");
+            aceEditor.setValue("");
             $("#queryName").removeClass("uneditable-input");
             $("#query_editor").removeClass("edit_mode").modal("toggle");
             return false;
         });
         $("#submit_query_create").click(function(event) {
             var doSubmit = true;
-            $('#create_query_form input[required="required"], #create_query_form textarea[required="required"]').each(function() {
+            $('#create_query_form input[required="required"]').each(function() {
                $(this).unbind("click").click(function(event) {
                    $(this).closest(".control-group").removeClass("error");
                });
@@ -75,7 +87,7 @@ var showData = function(rawData, dataUrl) {
             });
             if (doSubmit) {
                 var callPayload = {
-                    "sql" : $("#querySql").val(),
+                    "sql" : aceEditor.getValue().replace(/,\n/g, ', '),
                     "params" : []
                 };
                 for(var i=0; i<5; i++) {
@@ -118,7 +130,8 @@ var showData = function(rawData, dataUrl) {
             }
         });
         $("#submit_query_cancel").mousedown(function(event) {
-            $("#create_query_form input, #create_query_form textarea").val("");
+            $("#create_query_form input").val("");
+            aceEditor.setValue("");
         });
         $("#reporting_display thead").append('<tr><th>Query <i class="icon-sort-down"></i></th><th colspan="2">Parameters <i class="icon-sort-down"></i></th><th></th></tr>');
         $("#reporting_display").addClass("js_sorTable");
@@ -141,10 +154,14 @@ var showData = function(rawData, dataUrl) {
             $("#reporting_display tbody").append(newRow+'</tr>').find("tr").last().attr({"data-queryObject":JSON.stringify(queryRecord)});
         });
         $("a.edit_query").click(function(event) {
-            $("#create_query_form input, #create_query_form textarea").val("");
+            $("#create_query_form input").val("");
+            aceEditor.setValue("");
             var queryObject = JSON.parse($(this).closest("tr").attr("data-queryObject"));
             $("#queryName").addClass("uneditable-input").val(queryObject.name);
-            if (queryObject.hasOwnProperty("sql")) $("#querySql").val(queryObject.sql);
+            if (queryObject.hasOwnProperty("sql")) {
+                aceEditor.setValue(queryObject.sql.replace(/, /g, ',\n'));
+                aceEditor.gotoLine(0);
+            }
             forEach(queryObject.params, function(thisParamSet, setKey) {
                if (thisParamSet.hasOwnProperty("label") && thisParamSet.hasOwnProperty("name")) {
                    $("#param_label"+setKey).val(thisParamSet.label);
@@ -173,6 +190,10 @@ var showData = function(rawData, dataUrl) {
                             cookedData += '<dt>'+makePrettyName(thisStep.name)+':</dt><dd>'+makePrettyStatus(thisStep.status)+'</dd>';
                         });
                         cookedData += '</dl>';
+                    } else if (isJson(thisData)) {
+                        cookedData = JSON.stringify(JSON.parse(thisData), null, '\t');
+                    } else if (cookedData.charAt(0) === "{") {
+                        cookedData = cookedData.replace(/,/g, ',\n');
                     } else if (drillDown.hasOwnProperty(thisKey)) {
                         cookedData = '<a href="'+urlEngine.rootUrl + drillDown[thisKey].split("$").join(cookedData).split("api/1/query/").join("")+'">'+cookedData+'</a>';
                     }
@@ -554,6 +575,20 @@ var removeQuery = function(queryObject) {
 var generateAuth = function(username, password) {
     return $().crypt({method:"b64enc",source:username+':'+password});
 };
+
+/**
+    See if a given string can be parsed as JSON.
+    @param {string} testString - the test string.
+    @returns {boolean}  - test results.
+*/
+var isJson = function(testString) {
+    try {
+        JSON.parse(testString);
+    } catch (e) {
+        return false;
+    }
+    return true;
+}
 
 /**
     Iterate through an object, performing the specified function on each property.
