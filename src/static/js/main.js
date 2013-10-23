@@ -133,7 +133,7 @@ var showData = function(rawData, dataUrl) {
             $("#create_query_form input").val("");
             aceEditor.setValue("");
         });
-        $("#reporting_display thead").append('<tr><th>Query <i class="icon-sort-down"></i></th><th colspan="2">Parameters <i class="icon-sort-down"></i></th><th></th></tr>');
+        $("#reporting_display thead").append('<tr><th>Query </th><th colspan="2">Parameters </th><th></th></tr>');
         $("#reporting_display").addClass("js_sorTable");
         headersWritten = true;
         forEach(processedData, function(thisRow, rowId) {
@@ -153,28 +153,7 @@ var showData = function(rawData, dataUrl) {
             newRow += '</td><td><a class="btn btn-primary js_executeQuery" href="'+thisRow.name+'">Execute Query</a></td><td class="remove_query_holder"><a href="#" class="remove_query"><i class="icon-remove-sign icon-2x"></i></a></td>';
             $("#reporting_display tbody").append(newRow+'</tr>').find("tr").last().attr({"data-queryObject":JSON.stringify(queryRecord)});
         });
-        $("a.edit_query").click(function(event) {
-            $("#create_query_form input").val("");
-            aceEditor.setValue("");
-            var queryObject = JSON.parse($(this).closest("tr").attr("data-queryObject"));
-            $("#queryName").addClass("uneditable-input").val(queryObject.name);
-            if (queryObject.hasOwnProperty("sql")) {
-                aceEditor.setValue(queryObject.sql.replace(/, /g, ',\n'));
-                aceEditor.gotoLine(0);
-            }
-            forEach(queryObject.params, function(thisParamSet, setKey) {
-               if (thisParamSet.hasOwnProperty("label") && thisParamSet.hasOwnProperty("name")) {
-                   $("#param_label"+setKey).val(thisParamSet.label);
-                   $("#param_name"+setKey).val(thisParamSet.name);
-               }
-            });
-            $("#query_editor").addClass("edit_mode").modal("toggle");
-            return false;
-        });
-        $("a.remove_query").click(function(event) {
-           removeQuery(JSON.parse($(this).closest("tr").attr("data-queryObject")));
-           return false;
-        });
+        setUpQueryLinks();
     } else {
         if (processedData.length > 0) {
             forEach(processedData, function(thisRow) {
@@ -203,7 +182,7 @@ var showData = function(rawData, dataUrl) {
                 $("#reporting_display tbody").append(newRow+'</tr>');
                 if (!headersWritten) {
                     $("#reporting_display").addClass("js_sorTable");
-                    $("#reporting_display thead").append('<tr><th>'+rowKeys.join(' <i class="icon-sort-down"></i></th><th>')+' <i class="icon-sort-down"></i></th></tr>');
+                    $("#reporting_display thead").append('<tr><th>'+rowKeys.join(' </th><th>')+' </th></tr>');
                     headersWritten = true;
                 }
             });
@@ -417,6 +396,7 @@ var TableBox = function() {
                 return matchResult;
             };
             $(rowParent).html($(rowParent).find("tr").sort(compareRows));
+            setUpQueryLinks();
 
             /** If the TH has directional icons, reverse them. */
             if (ascendingSort) {
@@ -754,6 +734,32 @@ var makePrettyName = function(rawName) {
         cookedWords.push(thisWord.charAt(0).toUpperCase() + thisWord.slice(1));
     });
     return cookedWords.join(" ");
+}
+
+/** Set up query links. */
+var setUpQueryLinks = function() {
+    $("a.edit_query").unbind("click").click(function(event) {
+        $("#create_query_form input").val("");
+        aceEditor.setValue("");
+        var queryObject = JSON.parse($(this).closest("tr").attr("data-queryObject"));
+        $("#queryName").addClass("uneditable-input").val(queryObject.name);
+        if (queryObject.hasOwnProperty("sql")) {
+            aceEditor.setValue(queryObject.sql.replace(/, /g, ',\n'));
+            aceEditor.gotoLine(0);
+        }
+        forEach(queryObject.params, function(thisParamSet, setKey) {
+           if (thisParamSet.hasOwnProperty("label") && thisParamSet.hasOwnProperty("name")) {
+               $("#param_label"+setKey).val(thisParamSet.label);
+               $("#param_name"+setKey).val(thisParamSet.name);
+           }
+        });
+        $("#query_editor").addClass("edit_mode").modal("toggle");
+        return false;
+    });
+    $("a.remove_query").unbind("click").click(function(event) {
+       removeQuery(JSON.parse($(this).closest("tr").attr("data-queryObject")));
+       return false;
+    });
 }
 
 /**
