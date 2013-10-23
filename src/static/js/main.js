@@ -1,4 +1,5 @@
 var previousPage = false;
+var allQueries = false;
 
 /** Code to be invoked when page assets have finished loading. */
 var pageReady = function() {
@@ -31,8 +32,8 @@ var setUpAce = function() {
 
 var showData = function(rawData, dataUrl) {
     $("#loading_icon").hide();
-    console.log('data:');
-    console.log(rawData);
+    //console.log('data:');
+    //console.log(rawData);
 
     var directiveElements = urlEngine.getUrlDirective().substring(1).split("/");
 
@@ -43,8 +44,16 @@ var showData = function(rawData, dataUrl) {
     if (rawData.hasOwnProperty("results")) {
         processedData = rawData.results;
         if (rawData.hasOwnProperty("drill_down") && (rawData.drill_down !== null)) drillDown = rawData.drill_down;
+        apiCaller.doCall({
+            url : "info",
+            settings : {
+                success : function(data, textStatus, jqXHR) {
+                    allQueries = data;
+                }
+            }
+        });
     } else {
-        processedData = rawData;
+        processedData = allQueries = rawData;
         directiveElements.push("All Queries");
         showQueries = true;
     }
