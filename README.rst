@@ -3,7 +3,7 @@ Snooper - a DB query execution framework
 ========================================
 
 :Date: 2013-07-11
-:Author: M. Massenzio
+:Author: Marco Massenzio
 :Version: 0.3
 :Updated: 2013-10-03
 
