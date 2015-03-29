@@ -115,13 +115,6 @@ Alternatively, the script can be used to run an arbitrary SQL query from the com
 Please note it's an **error** to pass both the ``--queries`` argument and a query (in this case,
 the query literal would be incorrectly interpreted as one of the query's positional parameters).
 
-Promotion Codes
-+++++++++++++++
-
-**Snooper** can be used to create `Promotion Codes`_ too: please see the documentation_
-
-.. _Promotion Codes: https://github.com/RiverMeadow/encloud/blob/develop/docs/coupons.rst
-.. _documentation: https://github.com/massenz/snooper/blob/develop/promotion_codes.rst
 
 Connection parameters
 ^^^^^^^^^^^^^^^^^^^^^
